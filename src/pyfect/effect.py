@@ -18,7 +18,10 @@ from pyfect.primitives import (
     Async,
     Effect,
     Fail,
+    FlatMap,
+    Ignore,
     Map,
+    MapError,
     Succeed,
     Suspend,
     Sync,
@@ -37,7 +40,7 @@ type Never = NoReturn
 # ============================================================================
 
 
-def succeed[A](value: A) -> Effect[A, Never, None]:
+def succeed[A, E](value: A) -> Effect[A, E, None]:
     """
     Create an effect that succeeds with a value.
 
@@ -47,7 +50,7 @@ def succeed[A](value: A) -> Effect[A, Never, None]:
     return Succeed(value)
 
 
-def fail[E](error: E) -> Effect[Never, E, None]:
+def fail[A, E](error: E) -> Effect[A, E, None]:
     """
     Create an effect that fails with an error.
 
@@ -57,7 +60,7 @@ def fail[E](error: E) -> Effect[Never, E, None]:
     return Fail(error)
 
 
-def sync[A](thunk: Callable[[], A]) -> Effect[A, Never, None]:
+def sync[A, E](thunk: Callable[[], A]) -> Effect[A, E, None]:
     """
     Create an effect from a synchronous computation.
 
@@ -72,7 +75,7 @@ def sync[A](thunk: Callable[[], A]) -> Effect[A, Never, None]:
     return Sync(thunk)
 
 
-def async_[A](thunk: Callable[[], Awaitable[A]]) -> Effect[A, Never, None]:
+def async_[A, E](thunk: Callable[[], Awaitable[A]]) -> Effect[A, E, None]:
     """
     Create an effect from an asynchronous computation.
 
@@ -150,7 +153,7 @@ def suspend[A, E, R](thunk: Callable[[], Effect[A, E, R]]) -> Effect[A, E, R]:
 # ============================================================================
 
 # Re-export combinators
-from pyfect.combinators import map, tap, tap_error  # noqa: E402
+from pyfect.combinators import as_, flat_map, ignore, map, map_error, tap, tap_error  # noqa: E402
 
 # Re-export runtime
 from pyfect.runtime import (  # noqa: E402
@@ -167,7 +170,10 @@ __all__ = [
     "ExitFailure",
     "ExitSuccess",
     "Fail",
+    "FlatMap",
+    "Ignore",
     "Map",
+    "MapError",
     "Never",
     "Succeed",
     "Suspend",
@@ -176,9 +182,13 @@ __all__ = [
     "TapError",
     "TryAsync",
     "TrySync",
+    "as_",
     "async_",
     "fail",
+    "flat_map",
+    "ignore",
     "map",
+    "map_error",
     "run_async",
     "run_async_exit",
     "run_sync",

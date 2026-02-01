@@ -10,7 +10,7 @@ from pyfect import effect, pipe
 def test_map_succeed() -> None:
     """Test that map transforms a success value."""
     eff = effect.succeed(21)
-    mapped = effect.map(lambda x: x * 2)(eff)
+    mapped = effect.map(lambda x: x * 2)(eff) # type: ignore
     result = effect.run_sync(mapped)
     assert result == 42  # noqa: PLR2004
 
@@ -28,7 +28,7 @@ def test_map_with_pipe() -> None:
 def test_map_sync_effect() -> None:
     """Test that map works with sync effects."""
     eff = effect.sync(lambda: 21)
-    mapped = effect.map(lambda x: x * 2)(eff)
+    mapped = effect.map(lambda x: x * 2)(eff) # type: ignore
     result = effect.run_sync(mapped)
     assert result == 42  # noqa: PLR2004
 
@@ -41,7 +41,7 @@ async def test_map_async_effect() -> None:
         return 21
 
     eff = effect.async_(async_value)
-    mapped = effect.map(lambda x: x * 2)(eff)
+    mapped = effect.map(lambda x: x * 2)(eff) # type: ignore
     result = await effect.run_async(mapped)
     assert result == 42  # noqa: PLR2004
 
@@ -49,7 +49,7 @@ async def test_map_async_effect() -> None:
 def test_map_preserves_errors() -> None:
     """Test that map doesn't affect errors - they pass through unchanged."""
     eff = effect.fail(ValueError("oops"))
-    mapped = effect.map(lambda x: x * 2)(eff)
+    mapped = effect.map(lambda x: x * 2)(eff) # type: ignore
 
     with pytest.raises(ValueError, match="oops"):
         effect.run_sync(mapped)
@@ -58,7 +58,7 @@ def test_map_preserves_errors() -> None:
 def test_map_preserves_errors_with_exit() -> None:
     """Test that map preserves errors when using run_sync_exit."""
     eff = effect.fail("error message")
-    mapped = effect.map(lambda x: x * 2)(eff)
+    mapped = effect.map(lambda x: x * 2)(eff) # type: ignore
     result = effect.run_sync_exit(mapped)
 
     match result:
@@ -71,7 +71,7 @@ def test_map_preserves_errors_with_exit() -> None:
 async def test_map_preserves_errors_async_exit() -> None:
     """Test that map preserves errors when using run_async_exit."""
     eff = effect.fail("async error")
-    mapped = effect.map(lambda x: x * 2)(eff)
+    mapped = effect.map(lambda x: x * 2)(eff) # type: ignore
     result = await effect.run_async_exit(mapped)
 
     match result:
@@ -95,7 +95,7 @@ def test_map_composition() -> None:
 def test_map_with_type_transformation() -> None:
     """Test that map can transform types (int -> str)."""
     eff = effect.succeed(42)
-    mapped = effect.map(str)(eff)
+    mapped = effect.map(str)(eff) # type: ignore
     result = effect.run_sync(mapped)
     assert result == "42"
     assert isinstance(result, str)
@@ -137,7 +137,7 @@ def test_map_is_lazy() -> None:
 def test_map_with_try_sync() -> None:
     """Test that map works with try_sync effects."""
     eff = effect.try_sync(lambda: 21)
-    mapped = effect.map(lambda x: x * 2)(eff)
+    mapped = effect.map(lambda x: x * 2)(eff) # type: ignore
     result = effect.run_sync_exit(mapped)
 
     match result:
@@ -151,10 +151,11 @@ def test_map_with_try_sync_that_fails() -> None:
     """Test that map preserves exceptions from try_sync."""
 
     def will_fail() -> int:
-        raise ValueError("computation failed")
+        msg = "computation failed"
+        raise ValueError(msg)
 
     eff = effect.try_sync(will_fail)
-    mapped = effect.map(lambda x: x * 2)(eff)
+    mapped = effect.map(lambda x: x * 2)(eff) # type: ignore
     result = effect.run_sync_exit(mapped)
 
     match result:
@@ -173,7 +174,7 @@ async def test_map_with_try_async() -> None:
         return 21
 
     eff = effect.try_async(async_computation)
-    mapped = effect.map(lambda x: x * 2)(eff)
+    mapped = effect.map(lambda x: x * 2)(eff) # type: ignore
     result = await effect.run_async_exit(mapped)
 
     match result:

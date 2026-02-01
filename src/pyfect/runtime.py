@@ -17,7 +17,10 @@ from pyfect.primitives import (
     Async,
     Effect,
     Fail,
+    FlatMap,
+    Ignore,
     Map,
+    MapError,
     Succeed,
     Suspend,
     Sync,
@@ -32,7 +35,7 @@ from pyfect.primitives import (
 # ============================================================================
 
 
-def run_sync[A, E](effect: Effect[A, E, None]) -> A:
+def run_sync[A, E](effect: Effect[A, E, None]) -> A:  # noqa: PLR0911, PLR0912
     """
     Execute a synchronous effect and return its value.
 
@@ -69,6 +72,32 @@ def run_sync[A, E](effect: Effect[A, E, None]) -> A:
             # Run the inner effect and transform the result
             result = run_sync(inner_effect)
             return f(result)
+        case FlatMap(inner_effect, f):
+            # Run the inner effect, then run the effect returned by f
+            result = run_sync(inner_effect)
+            next_effect = f(result)
+            return run_sync(next_effect)
+        case Ignore(inner_effect):
+            # Run the effect and ignore both success and failure
+            with contextlib.suppress(BaseException):
+                run_sync(inner_effect)
+            return cast(A, None)
+        case MapError(inner_effect, f):
+            # Run the effect and transform errors
+            inner_result = run_sync_exit(inner_effect)
+            match inner_result:
+                case exit.ExitSuccess(value):
+                    return value
+                case exit.ExitFailure(error):
+                    # Transform the error and re-raise
+                    transformed = f(cast(Any, error))
+                    if isinstance(transformed, BaseException):
+                        # Preserve exception chain if original error was an exception
+                        if isinstance(error, BaseException):
+                            raise transformed from error
+                        raise transformed
+                    msg = f"effect failed: {transformed}"
+                    raise RuntimeError(msg)
         case TapError(inner_effect, f):
             # Try to run the inner effect
             try:
@@ -106,7 +135,7 @@ def run_async[A, E](effect: Effect[A, E, None]) -> Awaitable[A]:
         RuntimeError: If the effect cannot be run
     """
 
-    async def execute() -> A:  # noqa: PLR0911
+    async def execute() -> A:  # noqa: PLR0911, PLR0912
         match effect:
             case Succeed(value):
                 return value
@@ -130,6 +159,32 @@ def run_async[A, E](effect: Effect[A, E, None]) -> Awaitable[A]:
                 # Run the inner effect and transform the result
                 result = await run_async(inner_effect)
                 return f(result)
+            case FlatMap(inner_effect, f):
+                # Run the inner effect, then run the effect returned by f
+                result = await run_async(inner_effect)
+                next_effect = f(result)
+                return await run_async(next_effect)
+            case Ignore(inner_effect):
+                # Run the effect and ignore both success and failure
+                with contextlib.suppress(BaseException):
+                    await run_async(inner_effect)
+                return cast(A, None)
+            case MapError(inner_effect, f):
+                # Run the effect and transform errors
+                inner_result = await run_async_exit(inner_effect)
+                match inner_result:
+                    case exit.ExitSuccess(value):
+                        return value
+                    case exit.ExitFailure(error):
+                        # Transform the error and re-raise
+                        transformed = f(cast(Any, error))
+                        if isinstance(transformed, BaseException):
+                            # Preserve exception chain if original error was an exception
+                            if isinstance(error, BaseException):
+                                raise transformed from error
+                            raise transformed
+                        msg = f"effect failed: {transformed}"
+                        raise RuntimeError(msg)
             case TapError(inner_effect, f):
                 # Try to run the inner effect
                 try:
@@ -199,6 +254,27 @@ def run_sync_exit[A, E](effect: Effect[A, E, None]) -> Exit[A, E]:  # noqa: PLR0
                     return exit.succeed(f(value))
                 case exit.ExitFailure(error):
                     return exit.fail(error)
+        case FlatMap(inner_effect, f):
+            # Run the inner effect, then run the effect returned by f
+            inner_result = run_sync_exit(inner_effect)
+            match inner_result:
+                case exit.ExitSuccess(value):
+                    next_effect = f(value)
+                    return run_sync_exit(next_effect)
+                case exit.ExitFailure(error):
+                    return exit.fail(error)
+        case Ignore(inner_effect):
+            # Run the effect and ignore both success and failure
+            run_sync_exit(inner_effect)  # Ignore the result
+            return exit.succeed(cast(A, None))
+        case MapError(inner_effect, f):
+            # Run the effect and transform errors
+            inner_result = run_sync_exit(inner_effect)
+            match inner_result:
+                case exit.ExitSuccess(value):
+                    return exit.succeed(value)
+                case exit.ExitFailure(error):
+                    return exit.fail(f(cast(Any, error)))
         case TapError(inner_effect, f):
             # Run the inner effect
             inner_result = run_sync_exit(inner_effect)
@@ -271,6 +347,27 @@ def run_async_exit[A, E](effect: Effect[A, E, None]) -> Awaitable[Exit[A, E]]:
                         return exit.succeed(f(value))
                     case exit.ExitFailure(error):
                         return exit.fail(error)
+            case FlatMap(inner_effect, f):
+                # Run the inner effect, then run the effect returned by f
+                inner_result = await run_async_exit(inner_effect)
+                match inner_result:
+                    case exit.ExitSuccess(value):
+                        next_effect = f(value)
+                        return await run_async_exit(next_effect)
+                    case exit.ExitFailure(error):
+                        return exit.fail(error)
+            case Ignore(inner_effect):
+                # Run the effect and ignore both success and failure
+                await run_async_exit(inner_effect)  # Ignore the result
+                return exit.succeed(cast(A, None))
+            case MapError(inner_effect, f):
+                # Run the effect and transform errors
+                inner_result = await run_async_exit(inner_effect)
+                match inner_result:
+                    case exit.ExitSuccess(value):
+                        return exit.succeed(value)
+                    case exit.ExitFailure(error):
+                        return exit.fail(f(cast(Any, error)))
             case TapError(inner_effect, f):
                 # Run the inner effect
                 inner_result = await run_async_exit(inner_effect)

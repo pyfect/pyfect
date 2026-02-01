@@ -42,7 +42,7 @@ type Exit[A, E] = ExitSuccess[A] | ExitFailure[E]
 # ============================================================================
 
 
-def succeed[A](value: A) -> ExitSuccess[A]:
+def succeed[A, E](value: A) -> Exit[A, E]:
     """
     Create a successful exit with a value.
 
@@ -55,7 +55,7 @@ def succeed[A](value: A) -> ExitSuccess[A]:
     return ExitSuccess(value)
 
 
-def fail[E](error: E) -> ExitFailure[E]:
+def fail[A, E](error: E) -> Exit[A, E]:
     """
     Create a failed exit with an error.
 
