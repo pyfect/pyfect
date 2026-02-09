@@ -1,0 +1,201 @@
+"""
+Core Effect primitives and operations.
+
+This module contains the tagged union of effect primitives and functions
+that operate on them. Import as `Effect` for the Effect TS-like API.
+"""
+
+from collections.abc import Awaitable, Callable
+from typing import NoReturn
+
+# Re-export Exit types from exit module for backward compatibility
+from pyfect.exit import Exit, Failure, Success
+
+# Re-export Effect primitives from primitives module
+from pyfect.primitives import (
+    Async,
+    Effect,
+    Fail,
+    FlatMap,
+    Ignore,
+    Map,
+    MapError,
+    Succeed,
+    Suspend,
+    Sync,
+    Tap,
+    TapError,
+    TryAsync,
+    TrySync,
+)
+
+# Never type for impossible errors
+type Never = NoReturn
+
+
+# ============================================================================
+# Constructors
+# ============================================================================
+
+
+def succeed[A, E](value: A) -> Effect[A, E, None]:
+    """
+    Create an effect that succeeds with a value.
+
+    Example:
+        >>> effect = Effect.succeed(42)
+    """
+    return Succeed(value)
+
+
+def fail[A, E](error: E) -> Effect[A, E, None]:
+    """
+    Create an effect that fails with an error.
+
+    Example:
+        >>> effect = Effect.fail("Something went wrong")
+    """
+    return Fail(error)
+
+
+def sync[A, E](thunk: Callable[[], A]) -> Effect[A, E, None]:
+    """
+    Create an effect from a synchronous computation.
+
+    The computation is not executed immediately - it's deferred until
+    the effect is run by the runtime.
+
+    Example:
+        >>> effect = Effect.sync(lambda: print("Hello"))
+        >>> # Nothing printed yet - it's just a description
+        >>> # Will print when the effect is run
+    """
+    return Sync(thunk)
+
+
+def async_[A, E](thunk: Callable[[], Awaitable[A]]) -> Effect[A, E, None]:
+    """
+    Create an effect from an asynchronous computation.
+
+    The computation is not executed immediately - it's deferred until
+    the effect is run by the runtime.
+
+    Note: Uses async_ (with underscore) since 'async' is a Python keyword.
+
+    Example:
+        >>> import asyncio
+        >>> effect = Effect.async_(lambda: asyncio.sleep(1))
+        >>> # Sleep doesn't happen yet - only when the effect is run
+    """
+    return Async(thunk)
+
+
+def try_sync[A](thunk: Callable[[], A]) -> Effect[A, Exception, None]:
+    """
+    Create an effect from a synchronous computation that might throw.
+
+    Exceptions are captured and converted to effect errors.
+
+    Example:
+        >>> effect = Effect.try_sync(lambda: int("not a number"))
+        >>> result = Effect.run_sync_exit(effect)
+        >>> # Returns Failure(ValueError(...))
+    """
+    return TrySync(thunk)
+
+
+def try_async[A](thunk: Callable[[], Awaitable[A]]) -> Effect[A, Exception, None]:
+    """
+    Create an effect from an asynchronous computation that might throw.
+
+    Exceptions are captured and converted to effect errors.
+
+    Example:
+        >>> import asyncio
+        >>> async def might_fail():
+        ...     await asyncio.sleep(0.1)
+        ...     raise ValueError("oops")
+        >>> effect = Effect.try_async(might_fail)
+        >>> result = await Effect.run_async_exit(effect)
+        >>> # Returns Failure(ValueError("oops"))
+    """
+    return TryAsync(thunk)
+
+
+def suspend[A, E, R](thunk: Callable[[], Effect[A, E, R]]) -> Effect[A, E, R]:
+    """
+    Delay the creation of an effect until runtime.
+
+    The thunk is called each time the effect is run, allowing for:
+    - Lazy evaluation of effects
+    - Re-execution of side effects on each run
+    - Capturing fresh state each time
+
+    Example:
+        >>> i = 0
+        >>> # Bad - effect created once, i captured at creation
+        >>> bad = effect.succeed((i := i + 1))
+        >>> effect.run_sync(bad)  # 1
+        >>> effect.run_sync(bad)  # 1 (same effect, same i)
+        >>>
+        >>> # Good - effect created fresh each run
+        >>> good = effect.suspend(lambda: effect.succeed((i := i + 1)))
+        >>> effect.run_sync(good)  # 2
+        >>> effect.run_sync(good)  # 3 (fresh effect, fresh i!)
+    """
+    return Suspend(thunk)
+
+
+# ============================================================================
+# Re-exports for backward compatibility
+# ============================================================================
+
+# Re-export combinators
+from pyfect.combinators import as_, flat_map, ignore, map, map_error, tap, tap_error  # noqa: E402
+
+# Re-export runtime
+from pyfect.runtime import (  # noqa: E402
+    run_async,
+    run_async_exit,
+    run_sync,
+    run_sync_exit,
+)
+
+__all__ = [
+    "Async",
+    "Effect",
+    "Exit",
+    "Fail",
+    "Failure",
+    "FlatMap",
+    "Ignore",
+    "Map",
+    "MapError",
+    "Never",
+    "Succeed",
+    "Success",
+    "Suspend",
+    "Sync",
+    "Tap",
+    "TapError",
+    "TryAsync",
+    "TrySync",
+    "as_",
+    "async_",
+    "fail",
+    "flat_map",
+    "ignore",
+    "map",
+    "map_error",
+    "run_async",
+    "run_async_exit",
+    "run_sync",
+    "run_sync_exit",
+    "succeed",
+    "suspend",
+    "sync",
+    "tap",
+    "tap_error",
+    "try_async",
+    "try_sync",
+]
