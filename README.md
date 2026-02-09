@@ -1,5 +1,12 @@
 # pyfect
 
+[![PyPI version](https://badge.fury.io/py/pyfect.svg)](https://pypi.org/project/pyfect/)
+[![Python 3.13+](https://img.shields.io/badge/python-3.13+-blue.svg)](https://www.python.org/downloads/)
+[![CI](https://github.com/pyfect/pyfect/actions/workflows/ci.yaml/badge.svg)](https://github.com/pyfect/pyfect/actions/workflows/ci.yaml)
+[![codecov](https://codecov.io/gh/pyfect/pyfect/branch/main/graph/badge.svg)](https://codecov.io/gh/pyfect/pyfect)
+[![Documentation Status](https://readthedocs.org/projects/pyfect/badge/?version=latest)](https://pyfect.readthedocs.io/en/latest/?badge=latest)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+
 **Structured effects for modern Python**
 
 Python is being used to build systems far larger and more concurrent than it was originally designed for. Async is now unavoidable, yet error handling, resource management, and concurrency remain ad‑hoc and fragile. Exceptions leak everywhere. Background tasks escape. The sync/async boundary infects entire codebases.
