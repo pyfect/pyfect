@@ -33,9 +33,7 @@ def pipe(value: A, f1: Callable[[A], B], f2: Callable[[B], C], /) -> C: ...
 
 
 @overload
-def pipe(
-    value: A, f1: Callable[[A], B], f2: Callable[[B], C], f3: Callable[[C], D], /
-) -> D: ...
+def pipe(value: A, f1: Callable[[A], B], f2: Callable[[B], C], f3: Callable[[C], D], /) -> D: ...
 
 
 @overload
@@ -119,7 +117,7 @@ def pipe(
 ) -> J: ...
 
 
-def pipe[A](value: A, *fns: Callable) -> object: # type: ignore
+def pipe[A](value: A, *fns: Callable) -> object:  # type: ignore
     """
     Compose functions left-to-right, passing the result of each to the next.
 

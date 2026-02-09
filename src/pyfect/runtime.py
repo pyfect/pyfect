@@ -202,9 +202,6 @@ def run_async[A, E](effect: Effect[A, E, None]) -> Awaitable[A]:
             case TryAsync(thunk):
                 # Execute async thunk - exceptions propagate
                 return await thunk()
-            case _:
-                msg = f"Cannot run {type(effect).__name__}"
-                raise RuntimeError(msg)
 
     return execute()
 
@@ -392,9 +389,6 @@ def run_async_exit[A, E](effect: Effect[A, E, None]) -> Awaitable[Exit[A, E]]:
                     return exit.succeed(await thunk())
                 except Exception as e:
                     return exit.fail(cast(E, e))
-            case _:
-                msg = f"Cannot run {type(effect).__name__}"
-                raise RuntimeError(msg)
 
     return execute()
 
