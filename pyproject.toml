@@ -128,6 +128,7 @@ reportMissingTypeStubs = false
 strict = true
 python_version = "3.13"
 mypy_path = "src"
+exclude = ["tests/"]
 explicit_package_bases = true
 namespace_packages = true
 disallow_any_generics = true

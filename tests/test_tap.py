@@ -34,9 +34,7 @@ def test_tap_with_sync_computation() -> None:
     """Test tap with a Sync effect."""
     executed = []
 
-    eff = effect.tap(lambda x: effect.sync(lambda: executed.append(x)))(
-        effect.sync(lambda: 100)
-    )
+    eff = effect.tap(lambda x: effect.sync(lambda: executed.append(x)))(effect.sync(lambda: 100))
 
     result = effect.run_sync(eff)
     assert result == 100  # noqa: PLR2004
@@ -78,9 +76,7 @@ def test_tap_error_sync() -> None:
 
 def test_tap_error_preserves_error() -> None:
     """Test that tap_error re-raises the original error."""
-    eff = effect.tap_error(lambda e: effect.sync(lambda: None))(
-        effect.fail(ValueError("original"))
-    )
+    eff = effect.tap_error(lambda e: effect.sync(lambda: None))(effect.fail(ValueError("original")))
 
     with pytest.raises(ValueError, match="original"):
         effect.run_sync(eff)
