@@ -8,24 +8,24 @@ from pyfect import effect
 
 
 def test_run_sync_exit_success() -> None:
-    """Test that run_sync_exit returns ExitSuccess for successful effects."""
+    """Test that run_sync_exit returns Success for successful effects."""
     result = effect.run_sync_exit(effect.succeed(42))
 
     match result:
-        case effect.ExitSuccess(value):
+        case effect.Success(value):
             assert value == 42  # noqa: PLR2004
-        case effect.ExitFailure(_):
-            pytest.fail("Expected ExitSuccess, got ExitFailure")
+        case effect.Failure(_):
+            pytest.fail("Expected Success, got Failure")
 
 
 def test_run_sync_exit_failure() -> None:
-    """Test that run_sync_exit returns ExitFailure for failed effects."""
+    """Test that run_sync_exit returns Failure for failed effects."""
     result = effect.run_sync_exit(effect.fail(ValueError("oops")))
 
     match result:
-        case effect.ExitSuccess(_):
-            pytest.fail("Expected ExitFailure, got ExitSuccess")
-        case effect.ExitFailure(error):
+        case effect.Success(_):
+            pytest.fail("Expected Failure, got Success")
+        case effect.Failure(error):
             assert isinstance(error, ValueError)
             assert str(error) == "oops"
 
@@ -35,10 +35,10 @@ def test_run_sync_exit_with_sync_effect() -> None:
     result = effect.run_sync_exit(effect.sync(lambda: 100))
 
     match result:
-        case effect.ExitSuccess(value):
+        case effect.Success(value):
             assert value == 100  # noqa: PLR2004
-        case effect.ExitFailure(_):
-            pytest.fail("Expected ExitSuccess")
+        case effect.Failure(_):
+            pytest.fail("Expected Success")
 
 
 def test_run_sync_exit_with_tap() -> None:
@@ -50,11 +50,11 @@ def test_run_sync_exit_with_tap() -> None:
     result = effect.run_sync_exit(eff)
 
     match result:
-        case effect.ExitSuccess(value):
+        case effect.Success(value):
             assert value == 42  # noqa: PLR2004
             assert executed == [42]
-        case effect.ExitFailure(_):
-            pytest.fail("Expected ExitSuccess")
+        case effect.Failure(_):
+            pytest.fail("Expected Success")
 
 
 def test_run_sync_exit_with_tap_error_on_failure() -> None:
@@ -68,9 +68,9 @@ def test_run_sync_exit_with_tap_error_on_failure() -> None:
     result = effect.run_sync_exit(eff)
 
     match result:
-        case effect.ExitSuccess(_):
-            pytest.fail("Expected ExitFailure")
-        case effect.ExitFailure(error):
+        case effect.Success(_):
+            pytest.fail("Expected Failure")
+        case effect.Failure(error):
             assert isinstance(error, ValueError)
             assert len(executed) == 1
             assert "error" in executed[0]
@@ -87,34 +87,34 @@ def test_run_sync_exit_with_tap_error_on_success() -> None:
     result = effect.run_sync_exit(eff)
 
     match result:
-        case effect.ExitSuccess(value):
+        case effect.Success(value):
             assert value == 42  # noqa: PLR2004
             assert executed == []  # tap_error was not called
-        case effect.ExitFailure(_):
-            pytest.fail("Expected ExitSuccess")
+        case effect.Failure(_):
+            pytest.fail("Expected Success")
 
 
 @pytest.mark.asyncio
 async def test_run_async_exit_success() -> None:
-    """Test that run_async_exit returns ExitSuccess for successful effects."""
+    """Test that run_async_exit returns Success for successful effects."""
     result = await effect.run_async_exit(effect.succeed(42))
 
     match result:
-        case effect.ExitSuccess(value):
+        case effect.Success(value):
             assert value == 42  # noqa: PLR2004
-        case effect.ExitFailure(_):
-            pytest.fail("Expected ExitSuccess, got ExitFailure")
+        case effect.Failure(_):
+            pytest.fail("Expected Success, got Failure")
 
 
 @pytest.mark.asyncio
 async def test_run_async_exit_failure() -> None:
-    """Test that run_async_exit returns ExitFailure for failed effects."""
+    """Test that run_async_exit returns Failure for failed effects."""
     result = await effect.run_async_exit(effect.fail(RuntimeError("oops")))
 
     match result:
-        case effect.ExitSuccess(_):
-            pytest.fail("Expected ExitFailure, got ExitSuccess")
-        case effect.ExitFailure(error):
+        case effect.Success(_):
+            pytest.fail("Expected Failure, got Success")
+        case effect.Failure(error):
             assert isinstance(error, RuntimeError)
             assert str(error) == "oops"
 
@@ -130,10 +130,10 @@ async def test_run_async_exit_with_async_effect() -> None:
     result = await effect.run_async_exit(effect.async_(async_computation))
 
     match result:
-        case effect.ExitSuccess(value):
+        case effect.Success(value):
             assert value == 100  # noqa: PLR2004
-        case effect.ExitFailure(_):
-            pytest.fail("Expected ExitSuccess")
+        case effect.Failure(_):
+            pytest.fail("Expected Success")
 
 
 @pytest.mark.asyncio
@@ -142,10 +142,10 @@ async def test_run_async_exit_with_sync_effect() -> None:
     result = await effect.run_async_exit(effect.sync(lambda: 42))
 
     match result:
-        case effect.ExitSuccess(value):
+        case effect.Success(value):
             assert value == 42  # noqa: PLR2004
-        case effect.ExitFailure(_):
-            pytest.fail("Expected ExitSuccess")
+        case effect.Failure(_):
+            pytest.fail("Expected Success")
 
 
 @pytest.mark.asyncio
@@ -164,11 +164,11 @@ async def test_run_async_exit_with_tap() -> None:
     result = await effect.run_async_exit(eff)
 
     match result:
-        case effect.ExitSuccess(value):
+        case effect.Success(value):
             assert value == 42  # noqa: PLR2004
             assert executed == [42]
-        case effect.ExitFailure(_):
-            pytest.fail("Expected ExitSuccess")
+        case effect.Failure(_):
+            pytest.fail("Expected Success")
 
 
 def test_exit_pattern_matching() -> None:
@@ -178,19 +178,19 @@ def test_exit_pattern_matching() -> None:
 
     # Test success path
     match success_result:
-        case effect.ExitSuccess(value):
+        case effect.Success(value):
             assert value == "hello"
             success_matched = True
-        case effect.ExitFailure(_):
+        case effect.Failure(_):
             success_matched = False
 
     assert success_matched
 
     # Test failure path
     match failure_result:
-        case effect.ExitSuccess(_):
+        case effect.Success(_):
             failure_matched = False
-        case effect.ExitFailure(error):
+        case effect.Failure(error):
             assert error == "error"
             failure_matched = True
 
@@ -202,6 +202,6 @@ def test_exit_no_exceptions_thrown() -> None:
     # This should not throw, even though the error is an exception
     result = effect.run_sync_exit(effect.fail(ValueError("this should not throw")))
 
-    # Verify we got ExitFailure, not an exception
-    assert isinstance(result, effect.ExitFailure)
+    # Verify we got Failure, not an exception
+    assert isinstance(result, effect.Failure)
     assert isinstance(result.error, ValueError)

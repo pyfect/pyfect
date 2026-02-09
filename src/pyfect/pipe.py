@@ -4,8 +4,6 @@ Pipe utility for composing effects in a readable way.
 Inspired by Effect TS pipe function.
 """
 
-from __future__ import annotations
-
 from collections.abc import Callable
 from typing import TypeVar, overload
 

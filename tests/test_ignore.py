@@ -72,7 +72,7 @@ async def test_ignore_async_failure() -> None:
 
 
 def test_ignore_with_exit() -> None:
-    """Test that ignore always produces ExitSuccess(None)."""
+    """Test that ignore always produces Success(None)."""
     result = pipe(
         effect.succeed(42),
         effect.ignore(),
@@ -80,14 +80,14 @@ def test_ignore_with_exit() -> None:
     exit_result = effect.run_sync_exit(result)
 
     match exit_result:
-        case effect.ExitSuccess(value):
+        case effect.Success(value):
             assert value is None
-        case effect.ExitFailure(_):
+        case effect.Failure(_):
             pytest.fail("Ignore should never fail")
 
 
 def test_ignore_failure_with_exit() -> None:
-    """Test that ignore converts failures to ExitSuccess(None)."""
+    """Test that ignore converts failures to Success(None)."""
     result = pipe(
         effect.fail("error"),
         effect.ignore(),
@@ -95,9 +95,9 @@ def test_ignore_failure_with_exit() -> None:
     exit_result = effect.run_sync_exit(result)
 
     match exit_result:
-        case effect.ExitSuccess(value):
+        case effect.Success(value):
             assert value is None
-        case effect.ExitFailure(_):
+        case effect.Failure(_):
             pytest.fail("Ignore should never fail")
 
 
@@ -115,9 +115,9 @@ async def test_ignore_async_exit() -> None:
     exit_result = await effect.run_async_exit(result)
 
     match exit_result:
-        case effect.ExitSuccess(value):
+        case effect.Success(value):
             assert value is None
-        case effect.ExitFailure(_):
+        case effect.Failure(_):
             pytest.fail("Ignore should never fail")
 
 
@@ -252,9 +252,9 @@ def test_ignore_return_type_is_never() -> None:
 
     # Should always be success
     match exit_result:
-        case effect.ExitSuccess(value):
+        case effect.Success(value):
             assert value is None
-        case effect.ExitFailure(_):
+        case effect.Failure(_):
             pytest.fail("Effect[None, Never, R] should never fail")
 
 

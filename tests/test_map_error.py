@@ -60,9 +60,9 @@ def test_map_error_with_try_sync() -> None:
     exit_result = effect.run_sync_exit(result)
 
     match exit_result:
-        case effect.ExitFailure(error):
+        case effect.Failure(error):
             assert error == "Caught: computation failed"
-        case effect.ExitSuccess(_):
+        case effect.Success(_):
             pytest.fail("Expected failure but got success")
 
 
@@ -76,9 +76,9 @@ def test_map_error_with_exit() -> None:
     exit_result = effect.run_sync_exit(result)
 
     match exit_result:
-        case effect.ExitFailure(error):
+        case effect.Failure(error):
             assert error == "transformed: original error"
-        case effect.ExitSuccess(_):
+        case effect.Success(_):
             pytest.fail("Expected failure but got success")
 
 
@@ -92,9 +92,9 @@ def test_map_error_preserves_success_with_exit() -> None:
     exit_result = effect.run_sync_exit(result)
 
     match exit_result:
-        case effect.ExitSuccess(value):
+        case effect.Success(value):
             assert value == 100  # noqa: PLR2004
-        case effect.ExitFailure(_):
+        case effect.Failure(_):
             pytest.fail("Expected success but got failure")
 
 
@@ -114,9 +114,9 @@ async def test_map_error_async() -> None:
     exit_result = await effect.run_async_exit(result)
 
     match exit_result:
-        case effect.ExitFailure(error):
+        case effect.Failure(error):
             assert error == "Async: async error"
-        case effect.ExitSuccess(_):
+        case effect.Success(_):
             pytest.fail("Expected failure but got success")
 
 
@@ -147,9 +147,9 @@ def test_map_error_composition() -> None:
     exit_result = effect.run_sync_exit(result)
 
     match exit_result:
-        case effect.ExitFailure(error):
+        case effect.Failure(error):
             assert error == "3: 2: 1: error"
-        case effect.ExitSuccess(_):
+        case effect.Success(_):
             pytest.fail("Expected failure but got success")
 
 
@@ -224,9 +224,9 @@ def test_map_error_with_flat_map() -> None:
     exit_result = effect.run_sync_exit(result)
 
     match exit_result:
-        case effect.ExitFailure(error):
+        case effect.Failure(error):
             assert error == "Validation error: negative number"
-        case effect.ExitSuccess(_):
+        case effect.Success(_):
             pytest.fail("Expected failure but got success")
 
 

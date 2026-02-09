@@ -5,13 +5,11 @@ This module contains the tagged union of effect primitives and functions
 that operate on them. Import as `Effect` for the Effect TS-like API.
 """
 
-from __future__ import annotations
-
 from collections.abc import Awaitable, Callable
 from typing import NoReturn
 
 # Re-export Exit types from exit module for backward compatibility
-from pyfect.exit import Exit, ExitFailure, ExitSuccess
+from pyfect.exit import Exit, Failure, Success
 
 # Re-export Effect primitives from primitives module
 from pyfect.primitives import (
@@ -101,7 +99,7 @@ def try_sync[A](thunk: Callable[[], A]) -> Effect[A, Exception, None]:
     Example:
         >>> effect = Effect.try_sync(lambda: int("not a number"))
         >>> result = Effect.run_sync_exit(effect)
-        >>> # Returns ExitFailure(ValueError(...))
+        >>> # Returns Failure(ValueError(...))
     """
     return TrySync(thunk)
 
@@ -119,7 +117,7 @@ def try_async[A](thunk: Callable[[], Awaitable[A]]) -> Effect[A, Exception, None
         ...     raise ValueError("oops")
         >>> effect = Effect.try_async(might_fail)
         >>> result = await Effect.run_async_exit(effect)
-        >>> # Returns ExitFailure(ValueError("oops"))
+        >>> # Returns Failure(ValueError("oops"))
     """
     return TryAsync(thunk)
 
@@ -167,15 +165,15 @@ __all__ = [
     "Async",
     "Effect",
     "Exit",
-    "ExitFailure",
-    "ExitSuccess",
     "Fail",
+    "Failure",
     "FlatMap",
     "Ignore",
     "Map",
     "MapError",
     "Never",
     "Succeed",
+    "Success",
     "Suspend",
     "Sync",
     "Tap",

@@ -12,6 +12,15 @@ authors = [
 readme = "README.md"
 requires-python = ">=3.13"
 license-files = ["LICENSE"]
+keywords = [
+    "effect",
+    "effects",
+    "functional",
+    "error-handling",
+    "structured-concurrency",
+    "typed",
+    "async",
+]
 classifiers = [
     "Development Status :: 3 - Alpha",
     "Programming Language :: Python :: 3.13",
@@ -20,6 +29,13 @@ classifiers = [
     "Topic :: Software Development :: Libraries :: Python Modules",
     "Typing :: Typed",
 ]
+
+[project.urls]
+Homepage = "https://github.com/pyfect/pyfect"
+Documentation = "https://pyfect.readthedocs.io"
+Repository = "https://github.com/pyfect/pyfect"
+Issues = "https://github.com/pyfect/pyfect/issues"
+Changelog = "https://github.com/pyfect/pyfect/releases"
 
 dependencies = [
     # Core dependencies will be added as we implement features
@@ -34,6 +50,11 @@ dev = [
     "pytest-asyncio",
     "pre-commit",
     "mypy",
+]
+docs = [
+    "mkdocs",
+    "mkdocs-material",
+    "mkdocstrings[python]",
 ]
 
 # Ruff configuration

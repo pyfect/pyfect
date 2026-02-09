@@ -113,16 +113,16 @@ def test_suspend_with_exit() -> None:
 
     result1 = effect.run_sync_exit(eff)
     match result1:
-        case effect.ExitSuccess(value):
+        case effect.Success(value):
             assert value == 1
-        case effect.ExitFailure(_):
+        case effect.Failure(_):
             pytest.fail("Expected success")
 
     result2 = effect.run_sync_exit(eff)
     match result2:
-        case effect.ExitSuccess(value):
+        case effect.Success(value):
             assert value == 2  # noqa: PLR2004, Fresh effect!
-        case effect.ExitFailure(_):
+        case effect.Failure(_):
             pytest.fail("Expected success")
 
 
@@ -151,9 +151,7 @@ def test_suspend_with_tap() -> None:
         counter += 1
         return effect.succeed(counter)
 
-    eff = effect.tap(lambda x: effect.sync(lambda: tapped.append(x)))(
-        effect.suspend(make_effect)
-    )
+    eff = effect.tap(lambda x: effect.sync(lambda: tapped.append(x)))(effect.suspend(make_effect))
 
     effect.run_sync(eff)
     assert tapped == [1]
@@ -219,16 +217,16 @@ async def test_suspend_async_exit() -> None:
 
     result1 = await effect.run_async_exit(eff)
     match result1:
-        case effect.ExitSuccess(value):
+        case effect.Success(value):
             assert value == 1
-        case effect.ExitFailure(_):
+        case effect.Failure(_):
             pytest.fail("Expected success")
 
     result2 = await effect.run_async_exit(eff)
     match result2:
-        case effect.ExitSuccess(value):
+        case effect.Success(value):
             assert value == 2  # noqa: PLR2004
-        case effect.ExitFailure(_):
+        case effect.Failure(_):
             pytest.fail("Expected success")
 
 

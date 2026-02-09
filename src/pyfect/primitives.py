@@ -5,8 +5,6 @@ This module contains the core dataclasses that represent different kinds
 of effects, and the Effect union type that combines them all.
 """
 
-from __future__ import annotations
-
 from collections.abc import Awaitable, Callable
 from dataclasses import dataclass
 from typing import Any
@@ -62,30 +60,30 @@ class TryAsync[A, E, R]:
 class Suspend[A, E, R]:
     """An effect that delays effect creation until runtime."""
 
-    thunk: Callable[[], Effect[A, E, R]]
+    thunk: "Callable[[], Effect[A, E, R]]"
 
 
 @dataclass(frozen=True)
 class Tap[A, E, R]:
     """An effect that inspects the success value without modifying it."""
 
-    effect: Effect[A, E, R]
-    f: Callable[[A], Effect[Any, E, R]]
+    effect: "Effect[A, E, R]"
+    f: "Callable[[A], Effect[Any, E, R]]"
 
 
 @dataclass(frozen=True)
 class TapError[A, E, R]:
     """An effect that inspects the error value without modifying it."""
 
-    effect: Effect[A, E, R]
-    f: Callable[[E], Effect[Any, E, R]]
+    effect: "Effect[A, E, R]"
+    f: "Callable[[E], Effect[Any, E, R]]"
 
 
 @dataclass(frozen=True)
 class Map[A, B, E, R]:
     """An effect that transforms the success value."""
 
-    effect: Effect[A, E, R]
+    effect: "Effect[A, E, R]"
     f: Callable[[A], B]
 
 
@@ -93,22 +91,22 @@ class Map[A, B, E, R]:
 class FlatMap[A, B, E, R]:
     """An effect that chains effects together (monadic bind)."""
 
-    effect: Effect[A, E, R]
-    f: Callable[[A], Effect[B, E, R]]
+    effect: "Effect[A, E, R]"
+    f: "Callable[[A], Effect[B, E, R]]"
 
 
 @dataclass(frozen=True)
 class Ignore[A, E, R]:
     """An effect that ignores both success and failure, always succeeding with None."""
 
-    effect: Effect[A, E, R]
+    effect: "Effect[A, E, R]"
 
 
 @dataclass(frozen=True)
 class MapError[A, E, E2, R]:
     """An effect that transforms the error value."""
 
-    effect: Effect[A, E, R]
+    effect: "Effect[A, E, R]"
     f: Callable[[E], E2]
 
 

@@ -58,9 +58,9 @@ def test_as_preserves_errors_with_exit() -> None:
     result = effect.run_sync_exit(replaced)
 
     match result:
-        case effect.ExitFailure(error):
+        case effect.Failure(error):
             assert error == "error message"
-        case effect.ExitSuccess(_):
+        case effect.Success(_):
             pytest.fail("Expected failure but got success")
 
 
@@ -192,9 +192,9 @@ def test_as_with_try_sync() -> None:
     result = effect.run_sync_exit(replaced)
 
     match result:
-        case effect.ExitSuccess(value):
+        case effect.Success(value):
             assert value == "success"
-        case effect.ExitFailure(_):
+        case effect.Failure(_):
             pytest.fail("Expected success but got failure")
 
 
@@ -210,10 +210,10 @@ def test_as_with_try_sync_that_fails() -> None:
     result = effect.run_sync_exit(replaced)
 
     match result:
-        case effect.ExitFailure(error):
+        case effect.Failure(error):
             assert isinstance(error, ValueError)
             assert str(error) == "computation failed"
-        case effect.ExitSuccess(_):
+        case effect.Success(_):
             pytest.fail("Expected failure but got success")
 
 
@@ -229,7 +229,7 @@ async def test_as_with_try_async() -> None:
     result = await effect.run_async_exit(replaced)
 
     match result:
-        case effect.ExitSuccess(value):
+        case effect.Success(value):
             assert value == "async success"
-        case effect.ExitFailure(_):
+        case effect.Failure(_):
             pytest.fail("Expected success but got failure")

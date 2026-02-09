@@ -84,9 +84,9 @@ def test_flat_map_with_exit() -> None:
     exit_result = effect.run_sync_exit(result)
 
     match exit_result:
-        case effect.ExitSuccess(value):
+        case effect.Success(value):
             assert value == 20  # noqa: PLR2004
-        case effect.ExitFailure(_):
+        case effect.Failure(_):
             pytest.fail("Expected success but got failure")
 
 
@@ -99,9 +99,9 @@ def test_flat_map_failure_with_exit() -> None:
     exit_result = effect.run_sync_exit(result)
 
     match exit_result:
-        case effect.ExitFailure(error):
+        case effect.Failure(error):
             assert error == "error in chain"
-        case effect.ExitSuccess(_):
+        case effect.Success(_):
             pytest.fail("Expected failure but got success")
 
 
@@ -133,9 +133,9 @@ async def test_flat_map_async_exit() -> None:
     exit_result = await effect.run_async_exit(result)
 
     match exit_result:
-        case effect.ExitSuccess(value):
+        case effect.Success(value):
             assert value == 15  # noqa: PLR2004
-        case effect.ExitFailure(_):
+        case effect.Failure(_):
             pytest.fail("Expected success but got failure")
 
 
@@ -249,9 +249,9 @@ def test_flat_map_with_try_sync() -> None:
     exit_result = effect.run_sync_exit(result)
 
     match exit_result:
-        case effect.ExitSuccess(value):
+        case effect.Success(value):
             assert value == 20  # noqa: PLR2004
-        case effect.ExitFailure(_):
+        case effect.Failure(_):
             pytest.fail("Expected success but got failure")
 
 
@@ -272,10 +272,10 @@ def test_flat_map_with_try_sync_that_fails() -> None:
     exit_result = effect.run_sync_exit(result)
 
     match exit_result:
-        case effect.ExitFailure(error):
+        case effect.Failure(error):
             assert isinstance(error, ValueError)
             assert str(error) == "initial error"
-        case effect.ExitSuccess(_):
+        case effect.Success(_):
             pytest.fail("Expected failure but got success")
 
 
@@ -292,9 +292,9 @@ def test_flat_map_that_returns_failure() -> None:
     exit_result = effect.run_sync_exit(result)
 
     match exit_result:
-        case effect.ExitFailure(error):
+        case effect.Failure(error):
             assert error == "Failed at 10"
-        case effect.ExitSuccess(_):
+        case effect.Success(_):
             pytest.fail("Expected failure but got success")
 
 
@@ -342,7 +342,7 @@ def test_flat_map_complex_chain_with_failure() -> None:
     exit_result = effect.run_sync_exit(result)
 
     match exit_result:
-        case effect.ExitFailure(error):
+        case effect.Failure(error):
             assert error == "Invalid user ID"
-        case effect.ExitSuccess(_):
+        case effect.Success(_):
             pytest.fail("Expected failure but got success")

@@ -5,8 +5,6 @@ This module contains the runtime functions that execute effects,
 converting effect descriptions into actual computation.
 """
 
-from __future__ import annotations
-
 import contextlib
 from collections.abc import Awaitable
 from typing import Any, cast
@@ -86,9 +84,9 @@ def run_sync[A, E](effect: Effect[A, E, None]) -> A:  # noqa: PLR0911, PLR0912
             # Run the effect and transform errors
             inner_result = run_sync_exit(inner_effect)
             match inner_result:
-                case exit.ExitSuccess(value):
+                case exit.Success(value):
                     return value
-                case exit.ExitFailure(error):
+                case exit.Failure(error):
                     # Transform the error and re-raise
                     transformed = f(cast(Any, error))
                     if isinstance(transformed, BaseException):
@@ -173,9 +171,9 @@ def run_async[A, E](effect: Effect[A, E, None]) -> Awaitable[A]:
                 # Run the effect and transform errors
                 inner_result = await run_async_exit(inner_effect)
                 match inner_result:
-                    case exit.ExitSuccess(value):
+                    case exit.Success(value):
                         return value
-                    case exit.ExitFailure(error):
+                    case exit.Failure(error):
                         # Transform the error and re-raise
                         transformed = f(cast(Any, error))
                         if isinstance(transformed, BaseException):
@@ -215,15 +213,15 @@ def run_sync_exit[A, E](effect: Effect[A, E, None]) -> Exit[A, E]:  # noqa: PLR0
     """
     Execute a synchronous effect and return Exit instead of throwing.
 
-    Returns ExitSuccess on success or ExitFailure on error.
+    Returns Success on success or Failure on error.
     This keeps errors as values all the way through.
 
     Example:
         >>> result = effect.run_sync_exit(effect.succeed(42))
         >>> match result:
-        ...     case effect.ExitSuccess(value):
+        ...     case effect.Success(value):
         ...         print(f"Success: {value}")
-        ...     case effect.ExitFailure(error):
+        ...     case effect.Failure(error):
         ...         print(f"Error: {error}")
 
     Raises:
@@ -240,28 +238,28 @@ def run_sync_exit[A, E](effect: Effect[A, E, None]) -> Exit[A, E]:  # noqa: PLR0
             # Run the inner effect
             inner_result = run_sync_exit(inner_effect)
             match inner_result:
-                case exit.ExitSuccess(value):
+                case exit.Success(value):
                     # Run tap for side effects (ignore result)
                     run_sync(f(value))
                     return exit.succeed(value)
-                case exit.ExitFailure(error):
+                case exit.Failure(error):
                     return exit.fail(error)
         case Map(inner_effect, f):
             # Run the inner effect and transform successful result
             inner_result = run_sync_exit(inner_effect)
             match inner_result:
-                case exit.ExitSuccess(value):
+                case exit.Success(value):
                     return exit.succeed(f(value))
-                case exit.ExitFailure(error):
+                case exit.Failure(error):
                     return exit.fail(error)
         case FlatMap(inner_effect, f):
             # Run the inner effect, then run the effect returned by f
             inner_result = run_sync_exit(inner_effect)
             match inner_result:
-                case exit.ExitSuccess(value):
+                case exit.Success(value):
                     next_effect = f(value)
                     return run_sync_exit(next_effect)
-                case exit.ExitFailure(error):
+                case exit.Failure(error):
                     return exit.fail(error)
         case Ignore(inner_effect):
             # Run the effect and ignore both success and failure
@@ -271,17 +269,17 @@ def run_sync_exit[A, E](effect: Effect[A, E, None]) -> Exit[A, E]:  # noqa: PLR0
             # Run the effect and transform errors
             inner_result = run_sync_exit(inner_effect)
             match inner_result:
-                case exit.ExitSuccess(value):
+                case exit.Success(value):
                     return exit.succeed(value)
-                case exit.ExitFailure(error):
+                case exit.Failure(error):
                     return exit.fail(f(cast(Any, error)))
         case TapError(inner_effect, f):
             # Run the inner effect
             inner_result = run_sync_exit(inner_effect)
             match inner_result:
-                case exit.ExitSuccess(value):
+                case exit.Success(value):
                     return exit.succeed(value)
-                case exit.ExitFailure(error):
+                case exit.Failure(error):
                     # Run tap_error for side effects (ignore result)
                     with contextlib.suppress(BaseException):
                         run_sync(f(cast(Any, error)))
@@ -304,15 +302,15 @@ def run_async_exit[A, E](effect: Effect[A, E, None]) -> Awaitable[Exit[A, E]]:
     """
     Execute an effect asynchronously and return Exit instead of throwing.
 
-    Returns ExitSuccess on success or ExitFailure on error.
+    Returns Success on success or Failure on error.
     This can run both synchronous and asynchronous effects.
 
     Example:
         >>> result = await effect.run_async_exit(effect.succeed(42))
         >>> match result:
-        ...     case effect.ExitSuccess(value):
+        ...     case effect.Success(value):
         ...         print(f"Success: {value}")
-        ...     case effect.ExitFailure(error):
+        ...     case effect.Failure(error):
         ...         print(f"Error: {error}")
 
     Raises:
@@ -333,28 +331,28 @@ def run_async_exit[A, E](effect: Effect[A, E, None]) -> Awaitable[Exit[A, E]]:
                 # Run the inner effect
                 inner_result = await run_async_exit(inner_effect)
                 match inner_result:
-                    case exit.ExitSuccess(value):
+                    case exit.Success(value):
                         # Run tap for side effects (ignore result)
                         await run_async(f(value))
                         return exit.succeed(value)
-                    case exit.ExitFailure(error):
+                    case exit.Failure(error):
                         return exit.fail(error)
             case Map(inner_effect, f):
                 # Run the inner effect and transform successful result
                 inner_result = await run_async_exit(inner_effect)
                 match inner_result:
-                    case exit.ExitSuccess(value):
+                    case exit.Success(value):
                         return exit.succeed(f(value))
-                    case exit.ExitFailure(error):
+                    case exit.Failure(error):
                         return exit.fail(error)
             case FlatMap(inner_effect, f):
                 # Run the inner effect, then run the effect returned by f
                 inner_result = await run_async_exit(inner_effect)
                 match inner_result:
-                    case exit.ExitSuccess(value):
+                    case exit.Success(value):
                         next_effect = f(value)
                         return await run_async_exit(next_effect)
-                    case exit.ExitFailure(error):
+                    case exit.Failure(error):
                         return exit.fail(error)
             case Ignore(inner_effect):
                 # Run the effect and ignore both success and failure
@@ -364,17 +362,17 @@ def run_async_exit[A, E](effect: Effect[A, E, None]) -> Awaitable[Exit[A, E]]:
                 # Run the effect and transform errors
                 inner_result = await run_async_exit(inner_effect)
                 match inner_result:
-                    case exit.ExitSuccess(value):
+                    case exit.Success(value):
                         return exit.succeed(value)
-                    case exit.ExitFailure(error):
+                    case exit.Failure(error):
                         return exit.fail(f(cast(Any, error)))
             case TapError(inner_effect, f):
                 # Run the inner effect
                 inner_result = await run_async_exit(inner_effect)
                 match inner_result:
-                    case exit.ExitSuccess(value):
+                    case exit.Success(value):
                         return exit.succeed(value)
-                    case exit.ExitFailure(error):
+                    case exit.Failure(error):
                         # Run tap_error for side effects (ignore result)
                         with contextlib.suppress(BaseException):
                             await run_async(f(cast(Any, error)))

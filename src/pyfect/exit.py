@@ -5,8 +5,6 @@ Exit represents the result of running an effect - either success or failure.
 This module provides the Exit union type and constructors for creating exits.
 """
 
-from __future__ import annotations
-
 from dataclasses import dataclass
 from typing import NoReturn
 
@@ -20,21 +18,21 @@ type Never = NoReturn
 
 
 @dataclass(frozen=True)
-class ExitSuccess[A]:
+class Success[A]:
     """Successful exit with a value."""
 
     value: A
 
 
 @dataclass(frozen=True)
-class ExitFailure[E]:
+class Failure[E]:
     """Failed exit with an error."""
 
     error: E
 
 
 # Type alias for the Exit union
-type Exit[A, E] = ExitSuccess[A] | ExitFailure[E]
+type Exit[A, E] = Success[A] | Failure[E]
 
 
 # ============================================================================
@@ -49,10 +47,10 @@ def succeed[A, E](value: A) -> Exit[A, E]:
     Example:
         >>> exit = Exit.succeed(42)
         >>> match exit:
-        ...     case ExitSuccess(value):
+        ...     case Success(value):
         ...         print(f"Success: {value}")
     """
-    return ExitSuccess(value)
+    return Success(value)
 
 
 def fail[A, E](error: E) -> Exit[A, E]:
@@ -62,17 +60,17 @@ def fail[A, E](error: E) -> Exit[A, E]:
     Example:
         >>> exit = Exit.fail("Something went wrong")
         >>> match exit:
-        ...     case ExitFailure(error):
+        ...     case Failure(error):
         ...         print(f"Error: {error}")
     """
-    return ExitFailure(error)
+    return Failure(error)
 
 
 __all__ = [
     "Exit",
-    "ExitFailure",
-    "ExitSuccess",
+    "Failure",
     "Never",
+    "Success",
     "fail",
     "succeed",
 ]

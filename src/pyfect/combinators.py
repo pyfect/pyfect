@@ -5,8 +5,6 @@ Combinators are functions that take effects and return new effects,
 allowing you to build complex effect pipelines.
 """
 
-from __future__ import annotations
-
 from collections.abc import Callable
 from typing import NoReturn
 
@@ -85,7 +83,7 @@ def ignore[A, E, R]() -> Callable[[Effect[A, E, R]], Effect[None, Never, R]]:
         ...     effect.ignore()  # Don't care if it succeeds or fails
         ... )
     """
-    return lambda effect: Ignore(effect)
+    return Ignore
 
 
 def flat_map[A, B, E, R](

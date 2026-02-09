@@ -23,15 +23,15 @@ def test_try_sync_throws_with_run_sync() -> None:
 
 
 def test_try_sync_throws_with_run_sync_exit() -> None:
-    """Test that try_sync returns ExitFailure with run_sync_exit."""
+    """Test that try_sync returns Failure with run_sync_exit."""
     eff = effect.try_sync(lambda: int("not a number"))
 
     result = effect.run_sync_exit(eff)
 
     match result:
-        case effect.ExitSuccess(_):
-            pytest.fail("Expected ExitFailure")
-        case effect.ExitFailure(error):
+        case effect.Success(_):
+            pytest.fail("Expected Failure")
+        case effect.Failure(error):
             assert isinstance(error, ValueError)
             assert "invalid literal" in str(error)
 
@@ -41,13 +41,13 @@ def test_try_sync_different_exceptions() -> None:
     # ZeroDivisionError
     eff1 = effect.try_sync(lambda: 1 / 0)
     result1 = effect.run_sync_exit(eff1)
-    assert isinstance(result1, effect.ExitFailure)
+    assert isinstance(result1, effect.Failure)
     assert isinstance(result1.error, ZeroDivisionError)
 
     # KeyError
     eff2 = effect.try_sync(lambda: {}["missing"])
     result2 = effect.run_sync_exit(eff2)
-    assert isinstance(result2, effect.ExitFailure)
+    assert isinstance(result2, effect.Failure)
     assert isinstance(result2.error, KeyError)
 
     # Custom exception
@@ -56,7 +56,7 @@ def test_try_sync_different_exceptions() -> None:
 
     eff3 = effect.try_sync(lambda: (_ for _ in ()).throw(CustomError("custom")))
     result3 = effect.run_sync_exit(eff3)
-    assert isinstance(result3, effect.ExitFailure)
+    assert isinstance(result3, effect.Failure)
     assert isinstance(result3.error, CustomError)
 
 
@@ -84,11 +84,11 @@ def test_try_sync_with_tap_error() -> None:
     result = effect.run_sync_exit(eff)
 
     match result:
-        case effect.ExitFailure(error):
+        case effect.Failure(error):
             assert isinstance(error, ValueError)
             assert len(executed) == 1
-        case effect.ExitSuccess(_):
-            pytest.fail("Expected ExitFailure")
+        case effect.Success(_):
+            pytest.fail("Expected Failure")
 
 
 @pytest.mark.asyncio
@@ -120,7 +120,7 @@ async def test_try_async_throws_with_run_async() -> None:
 
 @pytest.mark.asyncio
 async def test_try_async_throws_with_run_async_exit() -> None:
-    """Test that try_async returns ExitFailure with run_async_exit."""
+    """Test that try_async returns Failure with run_async_exit."""
 
     async def failing_computation() -> int:
         await asyncio.sleep(0.01)
@@ -132,9 +132,9 @@ async def test_try_async_throws_with_run_async_exit() -> None:
     result = await effect.run_async_exit(eff)
 
     match result:
-        case effect.ExitSuccess(_):
-            pytest.fail("Expected ExitFailure")
-        case effect.ExitFailure(error):
+        case effect.Success(_):
+            pytest.fail("Expected Failure")
+        case effect.Failure(error):
             assert isinstance(error, RuntimeError)
             assert str(error) == "async error"
 
@@ -149,7 +149,7 @@ async def test_try_async_different_exceptions() -> None:
 
     eff = effect.try_async(zero_div)
     result = await effect.run_async_exit(eff)
-    assert isinstance(result, effect.ExitFailure)
+    assert isinstance(result, effect.Failure)
     assert isinstance(result.error, ZeroDivisionError)
 
 
@@ -188,7 +188,7 @@ def test_try_sync_vs_sync() -> None:
     try_sync_eff = effect.try_sync(lambda: int("bad"))
 
     result = effect.run_sync_exit(try_sync_eff)
-    assert isinstance(result, effect.ExitFailure)
+    assert isinstance(result, effect.Failure)
     assert isinstance(result.error, ValueError)
 
 
