@@ -1,32 +1,24 @@
-# Effect API
+# Effect
 
-!!! warning "Documentation In Progress"
-    API documentation is being developed. For now, refer to the source code and tests.
+Constructors for building effects and interop with other types.
+All functions in this module are re-exported from `pyfect.effect`.
 
-## Creating Effects
+## Constructors
 
-- `effect.succeed(value)` - Create a successful effect
-- `effect.fail(error)` - Create a failed effect
-- `effect.sync(fn)` - Wrap a synchronous computation
-- `effect.async_(fn)` - Wrap an asynchronous computation
-- `effect.try_sync(fn)` - Wrap a sync computation that may throw
-- `effect.try_async(fn)` - Wrap an async computation that may throw
+::: pyfect.effect.succeed
 
-## Running Effects
+::: pyfect.effect.fail
 
-- `effect.run_sync(eff)` - Run synchronously (throws on error)
-- `effect.run_async(eff)` - Run asynchronously (throws on error)
-- `effect.run_sync_exit(eff)` - Run synchronously (returns Exit)
-- `effect.run_async_exit(eff)` - Run asynchronously (returns Exit)
+::: pyfect.effect.sync
 
-## Combinators
+::: pyfect.effect.async_
 
-- `effect.map(fn)` - Transform success values
-- `effect.flat_map(fn)` - Chain effects together
-- `effect.map_error(fn)` - Transform error values
-- `effect.tap(fn)` - Perform side effects on success
-- `effect.tap_error(fn)` - Perform side effects on failure
-- `effect.as_(value)` - Replace the success value with a constant
-- `effect.ignore()` - Discard the success value, swallow errors
+::: pyfect.effect.try_sync
 
-See the [tests](https://github.com/pyfect/pyfect/tree/main/tests) for detailed usage examples.
+::: pyfect.effect.try_async
+
+::: pyfect.effect.suspend
+
+## Interop
+
+::: pyfect.effect.from_option
