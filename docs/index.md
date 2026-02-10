@@ -6,14 +6,14 @@ Python is being used to build systems far larger and more concurrent than it was
 
 **pyfect** exists to make this situation survivable.
 
-It provides a small, opinionated core for describing effects explicitly, handling errors as values, and enforcing structured concurrency — without turning Python into something unrecognizable.
+It provides a small, opinionated core for describing effects explicitly, handling errors as values, and enforcing structured concurrency, without turning Python into something unrecognizable.
 
 ## What pyfect is
 
 - A **Python-native effect system** inspired by functional programming, not a port of another language
 - A **single execution model** that can compose synchronous and asynchronous work
 - **Explicit errors** that compose instead of exploding control flow
-- **Structured concurrency by default** — no silent background work
+- **Structured concurrency by default**, i.e., no silent background work
 - A **runtime-first design** where safety is enforced at execution boundaries
 
 pyfect favors clarity, discipline, and correctness over convenience magic.
@@ -47,7 +47,7 @@ Effects are descriptions of work. Execution is centralized and controlled. Side 
 
 ### Small core, honest utilities
 
-The core of pyfect is intentionally small. Utilities are built on top — but only when they preserve explicit failure, structured concurrency, and resource safety.
+The core of pyfect is intentionally small. Utilities are built on top but only when they preserve explicit failure, structured concurrency, and resource safety.
 
 ## Status
 
@@ -62,7 +62,7 @@ The core of pyfect is intentionally small. Utilities are built on top — but on
 from pyfect import effect, pipe
 
 # Define an effect that might fail
-def divide(a: int, b: int) -> effect.Effect[str, float, None]:
+def divide(a: int, b: int) -> effect.Effect[float, str, None]:
     if b == 0:
         return effect.fail("Division by zero")
     return effect.succeed(a / b)

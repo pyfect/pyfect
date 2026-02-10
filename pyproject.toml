@@ -51,7 +51,7 @@ docs = [
 ]
 
 [project.urls]
-Homepage = "https://github.com/pyfect/pyfect"
+Homepage = "https://pyfect.readthedocs.io"
 Documentation = "https://pyfect.readthedocs.io"
 Repository = "https://github.com/pyfect/pyfect"
 Issues = "https://github.com/pyfect/pyfect/issues"
