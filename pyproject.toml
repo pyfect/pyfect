@@ -4,8 +4,8 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "pyfect"
-version = "0.1.0"
-description = "A Python-native effect system for explicit error handling and structured concurrency"
+version = "0.2.0"
+description = "Structured effects for modern Python"
 authors = [
     { name = "Julián Marrades", email = "julian@marrad.es" },
 ]

@@ -1,5 +1,5 @@
 site_name: pyfect
-site_description: A Python-native effect system for explicit error handling and structured concurrency
+site_description: Structured effects for modern Python
 site_author: Julián Marrades
 site_url: https://pyfect.readthedocs.io
 
