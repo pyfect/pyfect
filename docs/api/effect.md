@@ -24,7 +24,9 @@
 - `effect.map(fn)` - Transform success values
 - `effect.flat_map(fn)` - Chain effects together
 - `effect.map_error(fn)` - Transform error values
-- `effect.tap(fn)` - Perform side effects
-- `effect.ignore()` - Discard the success value
+- `effect.tap(fn)` - Perform side effects on success
+- `effect.tap_error(fn)` - Perform side effects on failure
+- `effect.as_(value)` - Replace the success value with a constant
+- `effect.ignore()` - Discard the success value, swallow errors
 
 See the [tests](https://github.com/pyfect/pyfect/tree/main/tests) for detailed usage examples.
