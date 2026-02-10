@@ -6,12 +6,9 @@ allowing you to build complex effect pipelines.
 """
 
 from collections.abc import Callable
-from typing import NoReturn
+from typing import Never
 
 from pyfect.primitives import Effect, FlatMap, Ignore, Map, MapError, Tap, TapError
-
-# Never type for impossible errors
-type Never = NoReturn
 
 # ============================================================================
 # Combinators

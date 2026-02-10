@@ -6,11 +6,6 @@ This module provides the Exit union type and constructors for creating exits.
 """
 
 from dataclasses import dataclass
-from typing import NoReturn
-
-# Never type for impossible errors
-type Never = NoReturn
-
 
 # ============================================================================
 # Exit Types
@@ -69,7 +64,6 @@ def fail[A, E](error: E) -> Exit[A, E]:
 __all__ = [
     "Exit",
     "Failure",
-    "Never",
     "Success",
     "fail",
     "succeed",
