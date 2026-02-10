@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "pyfect"
-version = "0.2.0"
+version = "0.2.1"
 description = "Structured effects for modern Python"
 authors = [
     { name = "Julián Marrades", email = "julian@marrad.es" },
