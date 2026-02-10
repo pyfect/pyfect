@@ -7,7 +7,7 @@ on:
 
 jobs:
   check-source-branch:
-    name: Source branch must be dev, hotfix/**, or release/**
+    name: Enforce source branch (main)
     runs-on: ubuntu-latest
     steps:
       - name: Check source branch
