@@ -1,20 +1,15 @@
 # Runtime
 
-!!! warning "Documentation In Progress"
-    Runtime documentation is being developed.
+Functions for executing effects and obtaining their results.
 
-## Running Effects
+Use the `run_sync` / `run_async` variants when you are comfortable letting
+errors propagate as exceptions. Use the `_exit` variants when you want to
+handle errors as values using `Exit`.
 
-Effects are run using the `effect.run_*` functions:
+::: pyfect.runtime.run_sync
 
-```python
-from pyfect import effect
+::: pyfect.runtime.run_sync_exit
 
-# Synchronous execution
-result = effect.run_sync(my_effect)
+::: pyfect.runtime.run_async
 
-# With Exit handling
-exit_result = effect.run_sync_exit(my_effect)
-```
-
-More documentation coming soon.
+::: pyfect.runtime.run_async_exit

@@ -7,7 +7,7 @@ of effects, and the Effect union type that combines them all.
 
 from collections.abc import Awaitable, Callable
 from dataclasses import dataclass
-from typing import Any
+from typing import Any, Never
 
 # ============================================================================
 # Effect Primitives (Tagged Union)
@@ -111,7 +111,7 @@ class MapError[A, E, E2, R]:
 
 
 # Type alias for the Effect union
-type Effect[A, E, R] = (
+type Effect[A, E = Never, R = None] = (
     Succeed[A, E, R]
     | Fail[A, E, R]
     | Sync[A, E, R]

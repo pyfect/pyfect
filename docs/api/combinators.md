@@ -1,16 +1,19 @@
 # Combinators
 
-!!! warning "Documentation In Progress"
-    See [test files](https://github.com/pyfect/pyfect/tree/main/tests) for usage examples.
+Functions for composing and transforming effects.
+All combinators are curried — they return a function that takes an effect,
+making them composable with `pipe`.
 
-## Available Combinators
+::: pyfect.combinators.map
 
-- `map` - Transform success values
-- `flat_map` - Chain effects
-- `map_error` - Transform errors
-- `tap` - Side effects on success
-- `tap_error` - Side effects on failure
-- `as_` - Replace success value with a constant
-- `ignore` - Discard success value, swallow errors
+::: pyfect.combinators.flat_map
 
-More documentation coming soon.
+::: pyfect.combinators.map_error
+
+::: pyfect.combinators.tap
+
+::: pyfect.combinators.tap_error
+
+::: pyfect.combinators.as_
+
+::: pyfect.combinators.ignore
