@@ -1,0 +1,19 @@
+name: Enforce merge to main
+
+on:
+  pull_request:
+    branches:
+      - main
+
+jobs:
+  check-source-branch:
+    name: Source branch must be dev, hotfix/**, or release/**
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check source branch
+        run: |
+          SOURCE="${{ github.head_ref }}"
+          if [[ "$SOURCE" != "dev" && "$SOURCE" != hotfix/* && "$SOURCE" != release/* ]]; then
+            echo "PRs to main must come from dev, hotfix/**, or release/**. Got: $SOURCE"
+            exit 1
+          fi
