@@ -59,13 +59,15 @@ nav:
   - Home: index.md
   - Getting Started:
       - Installation: getting-started/installation.md
-      - Quick Start: getting-started/quickstart.md
+      - Quickstart: getting-started/quickstart.md
   - Core Concepts:
       - Effects: concepts/effects.md
       - Error Handling: concepts/errors.md
-      - Structured Concurrency: concepts/concurrency.md
+      - Option: concepts/option.md
   - API Reference:
       - Effect: api/effect.md
       - Combinators: api/combinators.md
       - Runtime: api/runtime.md
+      - Option: api/option.md
+  - Roadmap: roadmap.md
   - Contributing: contributing.md

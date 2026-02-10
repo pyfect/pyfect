@@ -36,7 +36,7 @@ from pyfect.primitives import (
 # ============================================================================
 
 
-def succeed[A, E](value: A) -> Effect[A, E, None]:
+def succeed[A, E = Never](value: A) -> Effect[A, E, None]:
     """
     Create an effect that succeeds with a value.
 
@@ -46,7 +46,7 @@ def succeed[A, E](value: A) -> Effect[A, E, None]:
     return Succeed(value)
 
 
-def fail[A, E](error: E) -> Effect[A, E, None]:
+def fail[E, A = Never](error: E) -> Effect[A, E, None]:
     """
     Create an effect that fails with an error.
 
@@ -56,7 +56,7 @@ def fail[A, E](error: E) -> Effect[A, E, None]:
     return Fail(error)
 
 
-def sync[A, E](thunk: Callable[[], A]) -> Effect[A, E, None]:
+def sync[A, E = Never](thunk: Callable[[], A]) -> Effect[A, E, None]:
     """
     Create an effect from a synchronous computation.
 
@@ -71,7 +71,7 @@ def sync[A, E](thunk: Callable[[], A]) -> Effect[A, E, None]:
     return Sync(thunk)
 
 
-def async_[A, E](thunk: Callable[[], Awaitable[A]]) -> Effect[A, E, None]:
+def async_[A, E = Never](thunk: Callable[[], Awaitable[A]]) -> Effect[A, E, None]:
     """
     Create an effect from an asynchronous computation.
 
@@ -120,7 +120,7 @@ def try_async[A](thunk: Callable[[], Awaitable[A]]) -> Effect[A, Exception, None
     return TryAsync(thunk)
 
 
-def suspend[A, E, R](thunk: Callable[[], Effect[A, E, R]]) -> Effect[A, E, R]:
+def suspend[A, E = Never, R = None](thunk: Callable[[], Effect[A, E, R]]) -> Effect[A, E, R]:
     """
     Delay the creation of an effect until runtime.
 
