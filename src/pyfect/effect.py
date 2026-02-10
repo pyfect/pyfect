@@ -6,7 +6,9 @@ that operate on them. Import as `Effect` for the Effect TS-like API.
 """
 
 from collections.abc import Awaitable, Callable
-from typing import NoReturn
+from typing import Never
+
+import pyfect.option as option_module
 
 # Re-export Exit types from exit module for backward compatibility
 from pyfect.exit import Exit, Failure, Success
@@ -28,10 +30,6 @@ from pyfect.primitives import (
     TryAsync,
     TrySync,
 )
-
-# Never type for impossible errors
-type Never = NoReturn
-
 
 # ============================================================================
 # Constructors
@@ -150,6 +148,40 @@ def suspend[A, E, R](thunk: Callable[[], Effect[A, E, R]]) -> Effect[A, E, R]:
 # Re-exports for backward compatibility
 # ============================================================================
 
+# ============================================================================
+# Interop
+# ============================================================================
+
+
+def from_option[A, E](
+    error: Callable[[], E],
+) -> Callable[[option_module.Option[A]], Effect[A, E, None]]:
+    """
+    Convert an Option into an Effect.
+
+    Some(value) becomes a successful effect with that value.
+    Nothing becomes a failed effect using the provided error thunk.
+
+    The error thunk is only called when the Option is Nothing.
+
+    Example:
+        >>> from pyfect import option, pipe
+        >>> pipe(option.some(42), from_option(lambda: "not found"))
+        # succeeds with 42
+        >>> pipe(option.nothing(), from_option(lambda: "not found"))
+        # fails with "not found"
+    """
+
+    def _from_option(opt: option_module.Option[A]) -> Effect[A, E, None]:
+        match opt:
+            case option_module.Some(value):
+                return Succeed(value)
+            case option_module.Nothing():
+                return Fail(error())
+
+    return _from_option
+
+
 # Re-export combinators
 from pyfect.combinators import as_, flat_map, ignore, map, map_error, tap, tap_error  # noqa: E402
 
@@ -184,6 +216,7 @@ __all__ = [
     "async_",
     "fail",
     "flat_map",
+    "from_option",
     "ignore",
     "map",
     "map_error",
