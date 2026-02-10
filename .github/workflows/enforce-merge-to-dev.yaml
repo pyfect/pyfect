@@ -1,0 +1,21 @@
+name: Enforce merge to dev
+
+on:
+  pull_request:
+    branches:
+      - dev
+
+jobs:
+  check-source-branch:
+    name: Source branch must be feature/**, bugfix/**, hotfix/**, chore/**, docs/**, refactor/**, or release/**
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check source branch
+        run: |
+          SOURCE="${{ github.head_ref }}"
+          if [[ "$SOURCE" != feature/* && "$SOURCE" != bugfix/* && "$SOURCE" != hotfix/* && \
+                "$SOURCE" != chore/* && "$SOURCE" != docs/* && "$SOURCE" != refactor/* && \
+                "$SOURCE" != release/* ]]; then
+            echo "PRs to dev must come from feature/**, bugfix/**, hotfix/**, chore/**, docs/**, refactor/**, or release/**. Got: $SOURCE"
+            exit 1
+          fi
