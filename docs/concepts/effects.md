@@ -5,7 +5,7 @@
 
 ## What is an Effect?
 
-An `Effect[E, A, R]` is a description of a computation that:
+An `Effect[A, E, R]` is a description of a computation that:
 
 - May produce a value of type `A` on success
 - May fail with an error of type `E`

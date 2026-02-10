@@ -1,13 +1,10 @@
 # Installation
 
-!!! warning "Early Development"
-    pyfect is in active development. The package will be available on PyPI soon.
-
 ## Requirements
 
 pyfect requires Python 3.13 or later.
 
-## Install from PyPI (Coming Soon)
+## Install from PyPI
 
 ```bash
 pip install pyfect
