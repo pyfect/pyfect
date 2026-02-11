@@ -2,10 +2,6 @@
 
 pyfect is in early development. The core effect system and `Option` type are stable and ready to use. This page outlines what is coming next, roughly in priority order.
 
-## conda-forge
-
-Making pyfect available on conda-forge is the top distribution priority, alongside the existing PyPI package. This ensures the library is accessible to the scientific Python community.
-
 ## Either
 
 `Either[L, R]` is a pure data type representing a value that is either a `Left` (conventionally the failure case) or a `Right` (the success case). Unlike `Effect`, `Either` is not lazy — it is a plain value you can pattern match on immediately, with no runtime required.
