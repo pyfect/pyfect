@@ -125,11 +125,13 @@ def pipe[A](value: A, *fns: Callable) -> object:  # type: ignore
     but using pure functions.
 
     Example:
-        >>> from pyfect import effect, pipe
-        >>> result = pipe(
-        ...     effect.succeed(10),
-        ...     effect.tap(lambda x: effect.sync(lambda: print(f"Value: {x}"))),
-        ... )
+        ```python
+        from pyfect import effect, pipe
+        result = pipe(
+            effect.succeed(10),
+            effect.tap(lambda x: effect.sync(lambda: print(f"Value: {x}"))),
+        )
+        ```
 
     Args:
         value: The initial value

@@ -8,6 +8,7 @@ that operate on them. Import as `Effect` for the Effect TS-like API.
 from collections.abc import Awaitable, Callable
 from typing import Never
 
+import pyfect.either as either_module
 import pyfect.option as option_module
 
 # Re-export Exit types from exit module for backward compatibility
@@ -41,7 +42,9 @@ def succeed[A, E = Never](value: A) -> Effect[A, E, None]:
     Create an effect that succeeds with a value.
 
     Example:
-        >>> effect = Effect.succeed(42)
+        ```python
+        eff = succeed(42)
+        ```
     """
     return Succeed(value)
 
@@ -51,7 +54,9 @@ def fail[E, A = Never](error: E) -> Effect[A, E, None]:
     Create an effect that fails with an error.
 
     Example:
-        >>> effect = Effect.fail("Something went wrong")
+        ```python
+        eff = fail("Something went wrong")
+        ```
     """
     return Fail(error)
 
@@ -64,9 +69,11 @@ def sync[A, E = Never](thunk: Callable[[], A]) -> Effect[A, E, None]:
     the effect is run by the runtime.
 
     Example:
-        >>> effect = Effect.sync(lambda: print("Hello"))
-        >>> # Nothing printed yet - it's just a description
-        >>> # Will print when the effect is run
+        ```python
+        eff = sync(lambda: print("Hello"))
+        # Nothing printed yet - it's just a description
+        # Will print when the effect is run
+        ```
     """
     return Sync(thunk)
 
@@ -81,9 +88,11 @@ def async_[A, E = Never](thunk: Callable[[], Awaitable[A]]) -> Effect[A, E, None
     Note: Uses async_ (with underscore) since 'async' is a Python keyword.
 
     Example:
-        >>> import asyncio
-        >>> effect = Effect.async_(lambda: asyncio.sleep(1))
-        >>> # Sleep doesn't happen yet - only when the effect is run
+        ```python
+        import asyncio
+        eff = async_(lambda: asyncio.sleep(1))
+        # Sleep doesn't happen yet - only when the effect is run
+        ```
     """
     return Async(thunk)
 
@@ -95,9 +104,10 @@ def try_sync[A](thunk: Callable[[], A]) -> Effect[A, Exception, None]:
     Exceptions are captured and converted to effect errors.
 
     Example:
-        >>> effect = Effect.try_sync(lambda: int("not a number"))
-        >>> result = Effect.run_sync_exit(effect)
-        >>> # Returns Failure(ValueError(...))
+        ```python
+        eff = try_sync(lambda: int("not a number"))
+        result = run_sync_exit(eff)  # Failure(ValueError(...))
+        ```
     """
     return TrySync(thunk)
 
@@ -109,13 +119,16 @@ def try_async[A](thunk: Callable[[], Awaitable[A]]) -> Effect[A, Exception, None
     Exceptions are captured and converted to effect errors.
 
     Example:
-        >>> import asyncio
-        >>> async def might_fail():
-        ...     await asyncio.sleep(0.1)
-        ...     raise ValueError("oops")
-        >>> effect = Effect.try_async(might_fail)
-        >>> result = await Effect.run_async_exit(effect)
-        >>> # Returns Failure(ValueError("oops"))
+        ```python
+        import asyncio
+
+        async def might_fail():
+            await asyncio.sleep(0.1)
+            raise ValueError("oops")
+
+        eff = try_async(might_fail)
+        result = await run_async_exit(eff)  # Failure(ValueError("oops"))
+        ```
     """
     return TryAsync(thunk)
 
@@ -130,16 +143,18 @@ def suspend[A, E = Never, R = None](thunk: Callable[[], Effect[A, E, R]]) -> Eff
     - Capturing fresh state each time
 
     Example:
-        >>> i = 0
-        >>> # Bad - effect created once, i captured at creation
-        >>> bad = effect.succeed((i := i + 1))
-        >>> effect.run_sync(bad)  # 1
-        >>> effect.run_sync(bad)  # 1 (same effect, same i)
-        >>>
-        >>> # Good - effect created fresh each run
-        >>> good = effect.suspend(lambda: effect.succeed((i := i + 1)))
-        >>> effect.run_sync(good)  # 2
-        >>> effect.run_sync(good)  # 3 (fresh effect, fresh i!)
+        ```python
+        i = 0
+        # Bad - effect created once, i captured at creation
+        bad = succeed((i := i + 1))
+        run_sync(bad)  # 1
+        run_sync(bad)  # 1 (same effect, same i)
+
+        # Good - effect created fresh each run
+        good = suspend(lambda: succeed((i := i + 1)))
+        run_sync(good)  # 2
+        run_sync(good)  # 3 (fresh effect, fresh i!)
+        ```
     """
     return Suspend(thunk)
 
@@ -165,11 +180,11 @@ def from_option[A, E](
     The error thunk is only called when the Option is Nothing.
 
     Example:
-        >>> from pyfect import option, pipe
-        >>> pipe(option.some(42), from_option(lambda: "not found"))
-        # succeeds with 42
-        >>> pipe(option.nothing(), from_option(lambda: "not found"))
-        # fails with "not found"
+        ```python
+        from pyfect import option, pipe
+        pipe(option.some(42), from_option(lambda: "not found"))    # succeeds with 42
+        pipe(option.nothing(), from_option(lambda: "not found"))   # fails with "not found"
+        ```
     """
 
     def _from_option(opt: option_module.Option[A]) -> Effect[A, E, None]:
@@ -180,6 +195,27 @@ def from_option[A, E](
                 return Fail(error())
 
     return _from_option
+
+
+def from_either[R, L](e: either_module.Either[R, L]) -> Effect[R, L, None]:
+    """
+    Convert an Either into an Effect.
+
+    Right(value) becomes a successful effect with that value.
+    Left(value) becomes a failed effect with that value as the error.
+
+    Example:
+        ```python
+        from pyfect import either
+        from_either(either.right(42))    # succeeds with 42
+        from_either(either.left("oops")) # fails with "oops"
+        ```
+    """
+    match e:
+        case either_module.Right(value):
+            return Succeed(value)
+        case either_module.Left(value):
+            return Fail(value)
 
 
 # Re-export combinators
@@ -216,6 +252,7 @@ __all__ = [
     "async_",
     "fail",
     "flat_map",
+    "from_either",
     "from_option",
     "ignore",
     "map",

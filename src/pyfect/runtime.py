@@ -37,17 +37,18 @@ def run_sync[A, E](effect: Effect[A, E, None]) -> A:  # noqa: PLR0911, PLR0912
     """
     Execute a synchronous effect and return its value.
 
-    This will pattern match on the effect primitives and execute them.
-    Only works with synchronous effects (Succeed, Fail, Sync, Tap, TapError).
+    Raises if the effect fails or contains async primitives.
 
     Example:
-        >>> effect = Effect.succeed(42)
-        >>> result = Effect.run_sync(effect)
-        >>> assert result == 42
+        ```python
+        from pyfect import effect
+        result = effect.run_sync(effect.succeed(42))  # 42
+        ```
 
     Raises:
-        Exception: If the effect fails, raises the error
-        RuntimeError: If the effect cannot be run synchronously
+        BaseException: If the effect fails with an exception error value (re-raised as-is)
+        RuntimeError: If the effect fails with a non-exception error value, or contains async
+        primitives
     """
     match effect:
         case Succeed(value):
@@ -121,16 +122,18 @@ def run_async[A, E](effect: Effect[A, E, None]) -> Awaitable[A]:
     """
     Execute an effect asynchronously and return an awaitable.
 
-    This can run both synchronous and asynchronous effects.
+    Handles both synchronous and asynchronous primitives.
 
     Example:
-        >>> import asyncio
-        >>> effect = Effect.async_(lambda: asyncio.sleep(0.1))
-        >>> result = await Effect.run_async(effect)
+        ```python
+        import asyncio
+        from pyfect import effect
+        result = await effect.run_async(effect.async_(lambda: asyncio.sleep(0.1)))
+        ```
 
     Raises:
-        Exception: If the effect fails, raises the error
-        RuntimeError: If the effect cannot be run
+        BaseException: If the effect fails with an exception error value (re-raised as-is)
+        RuntimeError: If the effect fails with a non-exception error value
     """
 
     async def execute() -> A:  # noqa: PLR0911, PLR0912
@@ -214,12 +217,14 @@ def run_sync_exit[A, E](effect: Effect[A, E, None]) -> Exit[A, E]:  # noqa: PLR0
     This keeps errors as values all the way through.
 
     Example:
-        >>> result = effect.run_sync_exit(effect.succeed(42))
-        >>> match result:
-        ...     case effect.Success(value):
-        ...         print(f"Success: {value}")
-        ...     case effect.Failure(error):
-        ...         print(f"Error: {error}")
+        ```python
+        result = effect.run_sync_exit(effect.succeed(42))
+        match result:
+            case effect.Success(value):
+                print(f"Success: {value}")
+            case effect.Failure(error):
+                print(f"Error: {error}")
+        ```
 
     Raises:
         RuntimeError: If the effect cannot be run synchronously
@@ -303,15 +308,14 @@ def run_async_exit[A, E](effect: Effect[A, E, None]) -> Awaitable[Exit[A, E]]:
     This can run both synchronous and asynchronous effects.
 
     Example:
-        >>> result = await effect.run_async_exit(effect.succeed(42))
-        >>> match result:
-        ...     case effect.Success(value):
-        ...         print(f"Success: {value}")
-        ...     case effect.Failure(error):
-        ...         print(f"Error: {error}")
-
-    Raises:
-        RuntimeError: If the effect cannot be run
+        ```python
+        result = await effect.run_async_exit(effect.succeed(42))
+        match result:
+            case effect.Success(value):
+                print(f"Success: {value}")
+            case effect.Failure(error):
+                print(f"Error: {error}")
+        ```
     """
 
     async def execute() -> Exit[A, E]:  # noqa: PLR0911, PLR0912

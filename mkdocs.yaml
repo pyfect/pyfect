@@ -66,10 +66,12 @@ nav:
       - Effects: concepts/effects.md
       - Error Handling: concepts/errors.md
       - Option: concepts/option.md
+      - Either: concepts/either.md
   - API Reference:
       - Effect: api/effect.md
       - Combinators: api/combinators.md
       - Runtime: api/runtime.md
       - Option: api/option.md
+      - Either: api/either.md
   - Roadmap: roadmap.md
   - Contributing: contributing.md

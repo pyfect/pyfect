@@ -43,8 +43,10 @@ def some[A](value: A) -> Option[A]:
     Create an Option containing a value.
 
     Example:
-        >>> opt = some(42)
-        >>> assert isinstance(opt, Some)
+        ```python
+        opt = some(42)
+        assert isinstance(opt, Some)
+        ```
     """
     return Some(value)
 
@@ -56,8 +58,10 @@ def nothing() -> Nothing:
     Returns the NOTHING singleton.
 
     Example:
-        >>> opt = nothing()
-        >>> assert opt is NOTHING
+        ```python
+        opt = nothing()
+        assert opt is NOTHING
+        ```
     """
     return NOTHING
 
@@ -69,10 +73,10 @@ def from_optional[A](value: A | None) -> Option[A]:
     None becomes Nothing, any other value becomes Some.
 
     Example:
-        >>> from_optional(42)
-        Some(value=42)
-        >>> from_optional(None)
-        Nothing()
+        ```python
+        from_optional(42)  # Some(value=42)
+        from_optional(None)  # Nothing()
+        ```
     """
     return NOTHING if value is None else Some(value)
 
@@ -85,11 +89,11 @@ def lift_predicate[A](predicate: Callable[[A], bool]) -> Callable[[A], Option[A]
     or Nothing if it does not.
 
     Example:
-        >>> parse_positive = lift_predicate(lambda n: n > 0)
-        >>> parse_positive(42)
-        Some(value=42)
-        >>> parse_positive(-1)
-        Nothing()
+        ```python
+        parse_positive = lift_predicate(lambda n: n > 0)
+        parse_positive(42)  # Some(value=42)
+        parse_positive(-1)  # Nothing()
+        ```
     """
     return lambda value: Some(value) if predicate(value) else NOTHING
 
@@ -104,10 +108,10 @@ def is_some[A](option: Option[A]) -> TypeIs[Some[A]]:
     Return True if the Option contains a value.
 
     Example:
-        >>> is_some(some(42))
-        True
-        >>> is_some(nothing())
-        False
+        ```python
+        is_some(some(42))  # True
+        is_some(nothing())  # False
+        ```
     """
     return isinstance(option, Some)
 
@@ -117,10 +121,10 @@ def is_nothing[A](option: Option[A]) -> TypeIs[Nothing]:
     Return True if the Option is Nothing.
 
     Example:
-        >>> is_nothing(nothing())
-        True
-        >>> is_nothing(some(42))
-        False
+        ```python
+        is_nothing(nothing())  # True
+        is_nothing(some(42))  # False
+        ```
     """
     return isinstance(option, Nothing)
 
@@ -137,11 +141,11 @@ def map[A, B](f: Callable[[A], B]) -> Callable[[Option[A]], Option[B]]:
     Applies f to the value if Some, passes Nothing through unchanged.
 
     Example:
-        >>> from pyfect import pipe
-        >>> pipe(some(42), map(lambda x: x * 2))
-        Some(value=84)
-        >>> pipe(nothing(), map(lambda x: x * 2))
-        Nothing()
+        ```python
+        from pyfect import pipe
+        pipe(some(42), map(lambda x: x * 2))  # Some(value=84)
+        pipe(nothing(), map(lambda x: x * 2))  # Nothing()
+        ```
     """
 
     def _map(opt: Option[A]) -> Option[B]:
@@ -162,18 +166,17 @@ def flat_map[A, B](f: Callable[[A], Option[B]]) -> Callable[[Option[A]], Option[
     If Nothing, returns Nothing without calling f.
 
     Example:
-        >>> from pyfect import pipe
-        >>> def parse_int(s: str) -> Option[int]:
-        ...     try:
-        ...         return some(int(s))
-        ...     except ValueError:
-        ...         return nothing()
-        >>> pipe(some("42"), flat_map(parse_int))
-        Some(value=42)
-        >>> pipe(some("xx"), flat_map(parse_int))
-        Nothing()
-        >>> pipe(nothing(), flat_map(parse_int))
-        Nothing()
+        ```python
+        from pyfect import pipe
+        def parse_int(s: str) -> Option[int]:
+            try:
+                return some(int(s))
+            except ValueError:
+                return nothing()
+        pipe(some("42"), flat_map(parse_int))  # Some(value=42)
+        pipe(some("xx"), flat_map(parse_int))  # Nothing()
+        pipe(nothing(), flat_map(parse_int))  # Nothing()
+        ```
     """
 
     def _flat_map(opt: Option[A]) -> Option[B]:
@@ -195,13 +198,12 @@ def filter[A](predicate: Callable[[A], bool]) -> Callable[[Option[A]], Option[A]
     If Nothing, returns Nothing.
 
     Example:
-        >>> from pyfect import pipe
-        >>> pipe(some(42), filter(lambda x: x > 0))
-        Some(value=42)
-        >>> pipe(some(-1), filter(lambda x: x > 0))
-        Nothing()
-        >>> pipe(nothing(), filter(lambda x: x > 0))
-        Nothing()
+        ```python
+        from pyfect import pipe
+        pipe(some(42), filter(lambda x: x > 0))  # Some(value=42)
+        pipe(some(-1), filter(lambda x: x > 0))  # Nothing()
+        pipe(nothing(), filter(lambda x: x > 0))  # Nothing()
+        ```
     """
 
     def _filter(opt: Option[A]) -> Option[A]:
@@ -227,11 +229,11 @@ def get_or_none[A](opt: Option[A]) -> A | None:
     the absence of a value.
 
     Example:
-        >>> from pyfect import pipe
-        >>> pipe(some(42), get_or_none)
-        42
-        >>> pipe(nothing(), get_or_none)
-        None
+        ```python
+        from pyfect import pipe
+        pipe(some(42), get_or_none)  # 42
+        pipe(nothing(), get_or_none)  # None
+        ```
     """
     match opt:
         case Some(value):
@@ -247,11 +249,11 @@ def get_or_else[A](default: Callable[[], A]) -> Callable[[Option[A]], A]:
     The default thunk is only evaluated when the Option is Nothing.
 
     Example:
-        >>> from pyfect import pipe
-        >>> pipe(some(42), get_or_else(lambda: 0))
-        42
-        >>> pipe(nothing(), get_or_else(lambda: 0))
-        0
+        ```python
+        from pyfect import pipe
+        pipe(some(42), get_or_else(lambda: 0))  # 42
+        pipe(nothing(), get_or_else(lambda: 0))  # 0
+        ```
     """
 
     def _get_or_else(opt: Option[A]) -> A:
@@ -269,12 +271,10 @@ def get_or_raise[A](opt: Option[A]) -> A:
     Return the value if Some, or raise ValueError if Nothing.
 
     Example:
-        >>> get_or_raise(some(42))
-        42
-        >>> get_or_raise(nothing())
-        Traceback (most recent call last):
-            ...
-        ValueError: get_or_raise called on Nothing
+        ```python
+        get_or_raise(some(42))  # 42
+        get_or_raise(nothing())  # raises ValueError: get_or_raise called on Nothing
+        ```
     """
     match opt:
         case Some(value):
@@ -296,13 +296,12 @@ def or_else[A](alternative: Callable[[], Option[A]]) -> Callable[[Option[A]], Op
     The alternative thunk is only evaluated when the Option is Nothing.
 
     Example:
-        >>> from pyfect import pipe
-        >>> pipe(some(42), or_else(lambda: some(0)))
-        Some(value=42)
-        >>> pipe(nothing(), or_else(lambda: some(0)))
-        Some(value=0)
-        >>> pipe(nothing(), or_else(lambda: nothing()))
-        Nothing()
+        ```python
+        from pyfect import pipe
+        pipe(some(42), or_else(lambda: some(0)))  # Some(value=42)
+        pipe(nothing(), or_else(lambda: some(0)))  # Some(value=0)
+        pipe(nothing(), or_else(lambda: nothing()))  # Nothing()
+        ```
     """
 
     def _or_else(opt: Option[A]) -> Option[A]:
@@ -327,10 +326,11 @@ def zip_with[A, B, C](
     If either is Nothing, returns Nothing.
 
     Example:
-        >>> zip_with(some("John"), some(25), lambda name, age: {"name": name, "age": age})
-        Some(value={'name': 'John', 'age': 25})
-        >>> zip_with(some("John"), nothing(), lambda name, age: (name, age))
-        Nothing()
+        ```python
+        zip_with(some("John"), some(25), lambda name, age: {"name": name, "age": age})
+        # Some(value={'name': 'John', 'age': 25})
+        zip_with(some("John"), nothing(), lambda name, age: (name, age))  # Nothing()
+        ```
     """
     match opt_a, opt_b:
         case Some(a), Some(b):
@@ -346,10 +346,10 @@ def first_some_of[A](options: Iterable[Option[A]]) -> Option[A]:
     Short-circuits on the first Some found.
 
     Example:
-        >>> first_some_of([nothing(), some(2), nothing(), some(3)])
-        Some(value=2)
-        >>> first_some_of([nothing(), nothing()])
-        Nothing()
+        ```python
+        first_some_of([nothing(), some(2), nothing(), some(3)])  # Some(value=2)
+        first_some_of([nothing(), nothing()])  # Nothing()
+        ```
     """
     for opt in options:
         if is_some(opt):
@@ -374,13 +374,22 @@ def all[A, K](
     If all elements are Some, returns Some containing the collected values.
     If any element is Nothing, returns Nothing.
 
+    Note:
+        For heterogeneous collections (elements with different value types),
+        the type checker will not infer the correct type automatically. You
+        should provide an explicit type annotation and suppress the error:
+
+        ```python
+        options: list[Option[int | str]] = [some(1), some("hello")]
+        result: Option[list[int | str]] = all(options)  # type: ignore[arg-type]
+        ```
+
     Example:
-        >>> all([some("John"), some(25)])
-        Some(value=['John', 25])
-        >>> all({"name": some("John"), "age": some(25)})
-        Some(value={'name': 'John', 'age': 25})
-        >>> all([some(1), nothing(), some(3)])
-        Nothing()
+        ```python
+        all([some("John"), some(25)])  # Some(value=['John', 25])
+        all({"name": some("John"), "age": some(25)})  # Some(value={'name': 'John', 'age': 25})
+        all([some(1), nothing(), some(3)])  # Nothing()
+        ```
     """
     if isinstance(options, dict):
         result: dict[K, A] = {}  # type: ignore[valid-type]
