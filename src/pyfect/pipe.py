@@ -5,7 +5,7 @@ Inspired by Effect TS pipe function.
 """
 
 from collections.abc import Callable
-from typing import TypeVar, overload
+from typing import Any, TypeVar, overload
 
 A = TypeVar("A")
 B = TypeVar("B")
@@ -117,7 +117,7 @@ def pipe(
 ) -> J: ...
 
 
-def pipe[A](value: A, *fns: Callable) -> object:  # type: ignore
+def pipe(value: object, *fns: Callable[..., Any]) -> object:
     """
     Compose functions left-to-right, passing the result of each to the next.
 
