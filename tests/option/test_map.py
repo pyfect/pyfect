@@ -10,7 +10,10 @@ def test_map_some_transforms_value() -> None:
 
 
 def test_map_nothing_returns_nothing() -> None:
-    result = pipe(option.nothing(), option.map(lambda x: x * 2))  # type: ignore
+    def double(x: int) -> int:
+        return x * 2
+
+    result = pipe(option.nothing(), option.map(double))
     assert option.is_nothing(result)
 
 

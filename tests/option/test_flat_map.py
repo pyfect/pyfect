@@ -22,7 +22,7 @@ def test_flat_map_some_returns_nothing() -> None:
 
 
 def test_flat_map_nothing_returns_nothing() -> None:
-    result = pipe(option.nothing(), option.flat_map(_parse_int))  # type: ignore[arg-type]
+    result = pipe(option.nothing(), option.flat_map(_parse_int))
     assert option.is_nothing(result)
 
 
@@ -50,5 +50,5 @@ def test_flat_map_short_circuits_on_nothing() -> None:
         called = True
         return option.some(x)
 
-    pipe(option.nothing(), option.flat_map(f))  # type: ignore[arg-type]
+    pipe(option.nothing(), option.flat_map(f))
     assert not called

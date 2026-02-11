@@ -6,7 +6,7 @@ allowing you to build complex effect pipelines.
 """
 
 from collections.abc import Callable
-from typing import Never
+from typing import Any, Never, cast
 
 from pyfect.primitives import Effect, FlatMap, Ignore, Map, MapError, Tap, TapError
 
@@ -87,9 +87,9 @@ def ignore[A, E, R]() -> Callable[[Effect[A, E, R]], Effect[None, Never, R]]:
     return Ignore
 
 
-def flat_map[A, B, E, R](
-    f: Callable[[A], Effect[B, E, R]],
-) -> Callable[[Effect[A, E, R]], Effect[B, E, R]]:
+def flat_map[A, B, E, E2, R](
+    f: Callable[[A], Effect[B, E2, R]],
+) -> Callable[[Effect[A, E, R]], Effect[B, E | E2, R]]:
     """
     Chain effects together (monadic bind).
 
@@ -123,7 +123,12 @@ def flat_map[A, B, E, R](
         effect.run_sync(result)  # 4
         ```
     """
-    return lambda effect: FlatMap(effect, f)
+    f_cast = cast(Callable[[A], Effect[B, Any, R]], f)
+
+    def _apply(eff: Effect[A, E, R]) -> Effect[B, E | E2, R]:
+        return cast(Effect[B, E | E2, R], FlatMap(eff, f_cast))
+
+    return _apply
 
 
 def map[A, B, E, R](
@@ -194,9 +199,9 @@ def map_error[A, E, E2, R](
     return lambda effect: MapError(effect, f)
 
 
-def tap[A, B, E, R](
-    f: Callable[[A], Effect[B, E, R]],
-) -> Callable[[Effect[A, E, R]], Effect[A, E, R]]:
+def tap[A, B, E, E2, R](
+    f: Callable[[A], Effect[B, E2, R]],
+) -> Callable[[Effect[A, E, R]], Effect[A, E | E2, R]]:
     """
     Inspect the success value without modifying it.
 
@@ -204,8 +209,9 @@ def tap[A, B, E, R](
     The function f is called with the success value and returns an effect
     that is executed for its side effects. The original value is passed through.
 
-    The tap function must return an effect with the same error type E and
-    context type R as the input effect. The success type B is discarded.
+    The tap function may have a different error type E2; any error it produces
+    merges with the outer E type. The context type R must match. The success
+    type B is discarded.
 
     Works with both sync and async effects - the runtime handles it uniformly.
 
@@ -224,12 +230,17 @@ def tap[A, B, E, R](
         result = tap_fn(effect.succeed(42))
         ```
     """
-    return lambda effect: Tap(effect, f)
+    f_cast = cast(Callable[[A], Effect[Any, Any, R]], f)
+
+    def _apply(eff: Effect[A, E, R]) -> Effect[A, E | E2, R]:
+        return cast(Effect[A, E | E2, R], Tap(eff, f_cast))
+
+    return _apply
 
 
-def tap_error[A, B, E, R](
-    f: Callable[[E], Effect[B, E, R]],
-) -> Callable[[Effect[A, E, R]], Effect[A, E, R]]:
+def tap_error[A, B, E, E2, R](
+    f: Callable[[E], Effect[B, E2, R]],
+) -> Callable[[Effect[A, E, R]], Effect[A, E | E2, R]]:
     """
     Inspect the error value without modifying it.
 
@@ -237,8 +248,9 @@ def tap_error[A, B, E, R](
     The function f is called with the error value and returns an effect
     that is executed for its side effects. The original error is passed through.
 
-    The tap_error function must return an effect with the same error type E and
-    context type R as the input effect. The success type B is discarded.
+    The tap_error function may have a different error type E2; any error it
+    produces merges with the outer E type. The context type R must match.
+    The success type B is discarded.
 
     Example:
         ```python
@@ -250,7 +262,12 @@ def tap_error[A, B, E, R](
         )
         ```
     """
-    return lambda effect: TapError(effect, f)
+    f_cast = cast(Callable[[E], Effect[Any, Any, R]], f)
+
+    def _apply(eff: Effect[A, E, R]) -> Effect[A, E | E2, R]:
+        return cast(Effect[A, E | E2, R], TapError(eff, f_cast))
+
+    return _apply
 
 
 __all__ = [
