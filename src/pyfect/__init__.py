@@ -17,14 +17,15 @@ Example:
     >>> assert result == 42
 """
 
-from pyfect import effect, exit, option
+from pyfect import effect, either, exit, option
 from pyfect.pipe import pipe
 
-__version__ = "0.1.0"
+__version__ = "0.3.0"
 
 __all__ = [
     "__version__",
     "effect",
+    "either",
     "exit",
     "option",
     "pipe",
