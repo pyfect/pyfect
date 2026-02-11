@@ -1,6 +1,7 @@
 # pyfect
 
 [![PyPI version](https://badge.fury.io/py/pyfect.svg)](https://pypi.org/project/pyfect/)
+[![Conda Version](https://img.shields.io/conda/vn/conda-forge/pyfect.svg)](https://anaconda.org/conda-forge/pyfect)
 [![Python 3.13+](https://img.shields.io/badge/python-3.13+-blue.svg)](https://www.python.org/downloads/)
 [![CI](https://github.com/pyfect/pyfect/actions/workflows/ci.yaml/badge.svg)](https://github.com/pyfect/pyfect/actions/workflows/ci.yaml)
 [![codecov](https://codecov.io/gh/pyfect/pyfect/branch/main/graph/badge.svg)](https://codecov.io/gh/pyfect/pyfect)
