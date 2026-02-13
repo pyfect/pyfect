@@ -13,7 +13,7 @@ pip install pyfect
 ## Install from [conda-forge](https://anaconda.org/conda-forge/pyfect)
 
 ```bash
-conda install -c conda-forge pyfect
+conda install conda-forge::pyfect
 ```
 
 ## Install for Development
