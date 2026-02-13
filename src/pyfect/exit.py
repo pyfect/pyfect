@@ -41,10 +41,12 @@ def succeed[A, E = Never](value: A) -> Exit[A, E]:
     Create a successful exit with a value.
 
     Example:
-        >>> exit = Exit.succeed(42)
-        >>> match exit:
-        ...     case Success(value):
-        ...         print(f"Success: {value}")
+        ```python
+        exit = Exit.succeed(42)
+        match exit:
+            case Success(value):
+                print(f"Success: {value}")
+        ```
     """
     return Success(value)
 
@@ -54,10 +56,12 @@ def fail[E, A = Never](error: E) -> Exit[A, E]:
     Create a failed exit with an error.
 
     Example:
-        >>> exit = Exit.fail("Something went wrong")
-        >>> match exit:
-        ...     case Failure(error):
-        ...         print(f"Error: {error}")
+        ```python
+        exit = Exit.fail("Something went wrong")
+        match exit:
+            case Failure(error):
+                print(f"Error: {error}")
+        ```
     """
     return Failure(error)
 

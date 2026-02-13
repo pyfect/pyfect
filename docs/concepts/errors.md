@@ -102,6 +102,85 @@ effect.run_sync_exit(result)
 
 Useful for logging or monitoring without altering the error flow.
 
+## Mixing error types
+
+When you chain effects with `flat_map`, `tap`, or `tap_error`, the function's returned effect may have a **different** error type `E2`. The resulting effect carries `E | E2` — the union of both:
+
+```python
+from pyfect import effect, pipe
+
+def parse_int(s: str) -> effect.Effect[int, str]:
+    ...
+
+def validate_positive(n: int) -> effect.Effect[int, ValueError]:
+    if n <= 0:
+        return effect.fail(ValueError("must be positive"))
+    return effect.succeed(n)
+
+# Result: Effect[int, str | ValueError]
+result = pipe(
+    parse_int("42"),
+    effect.flat_map(validate_positive),
+)
+```
+
+When the function's effect can never fail (error type `Never`), the union collapses — `E | Never = E`. This is why passing `effect.succeed(...)` to `tap` does not widen the error type:
+
+```python
+# Still Effect[int, str] — tap function can't fail, so E | Never = E
+result = pipe(
+    parse_int("42"),
+    effect.tap(lambda x: effect.sync(lambda: print(x))),
+)
+```
+
+### Type inference and named functions
+
+Lambdas work at runtime, but type checkers see the lambda parameter as the unconstrained type variable `A` until the outer effect is known. If you pass that parameter to a function with a concrete type, the checker will flag it:
+
+```python
+async def log_value(x: int) -> None:
+    ...
+
+# Type checker: "A@tap" is not assignable to "int"
+effect.tap(lambda x: effect.async_(lambda: log_value(x)))(effect.succeed(42))
+```
+
+The fix is a named function with an explicit annotation, giving the type checker what it needs:
+
+```python
+from typing import Never
+
+def do_log(x: int) -> effect.Effect[None, Never, None]:
+    return effect.async_(lambda: log_value(x))
+
+effect.tap(do_log)(effect.succeed(42))  # ✓
+```
+
+### Annotating `effect.fail` in isolation
+
+`effect.fail(e)` has no success value, so the success type `A` defaults to `Never`. That is fine inside a function whose return type gives the context:
+
+```python
+def parse_int(s: str) -> effect.Effect[int, str]:
+    ...
+    return effect.fail(f"Not a number: {s}")   # A inferred as int from return type
+```
+
+But when you assign the result to a variable and then chain a combinator that requires a concrete success type, the type checker sees `Effect[Never, E, None]` and will flag the mismatch:
+
+```python
+eff = effect.fail(ValueError("oops"))          # Effect[Never, ValueError, None]
+mapped = effect.map(lambda x: x * 2)(eff)      # error: A is Never, not int
+```
+
+Fix this with an explicit annotation on the variable:
+
+```python
+eff: effect.Effect[int, ValueError, None] = effect.fail(ValueError("oops"))
+mapped = effect.map(lambda x: x * 2)(eff)      # ✓ A is now int
+```
+
 ## Errors compose
 
 Because errors are values, they compose naturally through pipelines. If any step fails, subsequent steps are skipped and the failure propagates through:
