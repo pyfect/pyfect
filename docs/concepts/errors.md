@@ -171,14 +171,17 @@ But when you assign the result to a variable and then chain a combinator that re
 
 ```python
 eff = effect.fail(ValueError("oops"))          # Effect[Never, ValueError, None]
-mapped = effect.map(lambda x: x * 2)(eff)      # error: A is Never, not int
+mapped = effect.map(lambda x: x * 2)(eff)      # error: Operator "*" not supported for types "A@map" and "Literal[2]"
 ```
 
-Fix this with an explicit annotation on the variable:
+Fix this with an explicit annotation on the variable **and** a named function with a typed parameter (a lambda's parameter stays unconstrained as `A@map`, so the operator error persists even after annotating the variable):
 
 ```python
+def double(x: int) -> int:
+    return x * 2
+
 eff: effect.Effect[int, ValueError, None] = effect.fail(ValueError("oops"))
-mapped = effect.map(lambda x: x * 2)(eff)      # ✓ A is now int
+mapped = effect.map(double)(eff)      # ✓
 ```
 
 ## Errors compose
