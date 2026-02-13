@@ -2,10 +2,6 @@
 
 pyfect is in early development. The core effect system and `Option` type are stable and ready to use. This page outlines what is coming next, roughly in priority order.
 
-## conda-forge
-
-Making pyfect available on conda-forge is the top distribution priority, alongside the existing PyPI package. This ensures the library is accessible to the scientific Python community.
-
 ## Context & Dependency Injection
 
 The `R` type parameter in `Effect[A, E, R]` is already part of the type signature but currently always `None`. The plan is to give it meaning: `R` declares the services an effect requires to run.
