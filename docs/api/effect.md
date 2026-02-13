@@ -22,3 +22,5 @@ All functions in this module are re-exported from `pyfect.effect`.
 ## Interop
 
 ::: pyfect.effect.from_option
+
+::: pyfect.effect.from_either

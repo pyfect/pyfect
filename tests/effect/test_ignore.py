@@ -216,7 +216,7 @@ def test_ignore_doesnt_prevent_chaining() -> None:
     result = pipe(
         effect.succeed(42),
         effect.ignore(),  # Returns None
-        effect.map(lambda _: "after ignore"),  # type: ignore
+        effect.map(lambda _: "after ignore"),
     )
     assert effect.run_sync(result) == "after ignore"
 
@@ -231,7 +231,7 @@ def test_ignore_with_multiple_failures() -> None:
     result = pipe(
         effect.try_sync(first_fail),
         effect.ignore(),  # Catches first error
-        effect.flat_map(lambda _: effect.fail("second error")),  # type: ignore
+        effect.flat_map(lambda _: effect.fail("second error")),
         effect.ignore(),  # Catches second error
     )
 

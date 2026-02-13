@@ -1,6 +1,7 @@
 """Tests for Exit runtime functions."""
 
 import asyncio
+from typing import Never
 
 import pytest
 
@@ -157,9 +158,10 @@ async def test_run_async_exit_with_tap() -> None:
         await asyncio.sleep(0.01)
         executed.append(x)
 
-    eff = effect.tap(lambda x: effect.async_(lambda: async_log(x)))(  # type: ignore[arg-type]
-        effect.succeed(42)
-    )
+    def do_log(x: int) -> effect.Effect[None, Never, None]:
+        return effect.async_(lambda: async_log(x))
+
+    eff = effect.tap(do_log)(effect.succeed(42))
 
     result = await effect.run_async_exit(eff)
 

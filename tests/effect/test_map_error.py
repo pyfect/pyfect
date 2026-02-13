@@ -22,7 +22,7 @@ def test_map_error_preserves_success() -> None:
     """Test that map_error doesn't affect success values."""
     result = pipe(
         effect.succeed(42),
-        effect.map_error(lambda e: f"Error: {e}"),  # type: ignore
+        effect.map_error(lambda e: f"Error: {e}"),
     )
 
     assert effect.run_sync(result) == 42  # noqa: PLR2004
@@ -86,7 +86,7 @@ def test_map_error_preserves_success_with_exit() -> None:
     """Test that map_error preserves success when using run_sync_exit."""
     result = pipe(
         effect.succeed(100),
-        effect.map_error(lambda e: f"Error: {e}"),  # type: ignore
+        effect.map_error(lambda e: f"Error: {e}"),
     )
 
     exit_result = effect.run_sync_exit(result)
@@ -129,7 +129,7 @@ async def test_map_error_async_success() -> None:
 
     result = pipe(
         effect.async_(async_value),
-        effect.map_error(lambda e: f"Error: {e}"),  # type: ignore
+        effect.map_error(lambda e: f"Error: {e}"),
     )
 
     assert await effect.run_async(result) == 42  # noqa: PLR2004
@@ -176,7 +176,7 @@ def test_map_error_with_map() -> None:
     result = pipe(
         effect.succeed(10),
         effect.map(lambda x: x * 2),  # 20
-        effect.map_error(lambda e: f"Error: {e}"),  # type: ignore
+        effect.map_error(lambda e: f"Error: {e}"),
     )
 
     assert effect.run_sync(result) == 20  # noqa: PLR2004
@@ -197,7 +197,7 @@ def test_map_and_map_error_on_failure() -> None:
 
     result = pipe(
         effect.fail("oops"),
-        effect.map(track_map),  # type: ignore
+        effect.map(track_map),
         effect.map_error(track_map_error),
     )
 

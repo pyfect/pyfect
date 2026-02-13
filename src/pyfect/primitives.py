@@ -68,7 +68,7 @@ class Tap[A, E, R]:
     """An effect that inspects the success value without modifying it."""
 
     effect: "Effect[A, E, R]"
-    f: "Callable[[A], Effect[Any, E, R]]"
+    f: "Callable[[A], Effect[Any, Any, R]]"
 
 
 @dataclass(frozen=True)
@@ -76,7 +76,7 @@ class TapError[A, E, R]:
     """An effect that inspects the error value without modifying it."""
 
     effect: "Effect[A, E, R]"
-    f: "Callable[[E], Effect[Any, E, R]]"
+    f: "Callable[[E], Effect[Any, Any, R]]"
 
 
 @dataclass(frozen=True)
@@ -92,7 +92,7 @@ class FlatMap[A, B, E, R]:
     """An effect that chains effects together (monadic bind)."""
 
     effect: "Effect[A, E, R]"
-    f: "Callable[[A], Effect[B, E, R]]"
+    f: "Callable[[A], Effect[B, Any, R]]"
 
 
 @dataclass(frozen=True)

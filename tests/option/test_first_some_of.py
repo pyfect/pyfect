@@ -36,7 +36,7 @@ def test_first_some_of_single_some() -> None:
 
 def test_first_some_of_short_circuits() -> None:
     def generate() -> Generator[option.Option[int]]:
-        yield option.nothing()  # type: ignore[misc]
+        yield option.nothing()
         yield option.some(1)
         raise RuntimeError("should not be reached")  # noqa: EM101
 

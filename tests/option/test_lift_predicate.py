@@ -4,14 +4,20 @@ from pyfect import option
 
 
 def test_lift_predicate_passes_returns_some() -> None:
-    parse_positive = option.lift_predicate(lambda n: n > 0)  # type: ignore
+    def is_positive(n: int) -> bool:
+        return n > 0
+
+    parse_positive = option.lift_predicate(is_positive)
     result = parse_positive(42)
     assert option.is_some(result)
     assert result.value == 42  # noqa: PLR2004
 
 
 def test_lift_predicate_fails_returns_nothing() -> None:
-    parse_positive = option.lift_predicate(lambda n: n > 0)  # type: ignore
+    def is_positive(n: int) -> bool:
+        return n > 0
+
+    parse_positive = option.lift_predicate(is_positive)
     result = parse_positive(-1)
     assert option.is_nothing(result)
 

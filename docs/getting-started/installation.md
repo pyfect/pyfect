@@ -4,10 +4,16 @@
 
 pyfect requires Python 3.13 or later.
 
-## Install from PyPI
+## Install from [PyPI](https://pypi.org/project/pyfect/)
 
 ```bash
 pip install pyfect
+```
+
+## Install from [conda-forge](https://anaconda.org/conda-forge/pyfect)
+
+```bash
+conda install conda-forge::pyfect
 ```
 
 ## Install for Development
