@@ -87,9 +87,9 @@ def ignore[A, E, R]() -> Callable[[Effect[A, E, R]], Effect[None, Never, R]]:
     return Ignore
 
 
-def flat_map[A, B, E, E2, R](
-    f: Callable[[A], Effect[B, E2, R]],
-) -> Callable[[Effect[A, E, R]], Effect[B, E | E2, R]]:
+def flat_map[A, B, E, E2, R1, R2](
+    f: Callable[[A], Effect[B, E2, R2]],
+) -> Callable[[Effect[A, E, R1]], Effect[B, E | E2, R1 | R2]]:
     """
     Chain effects together (monadic bind).
 
@@ -123,10 +123,10 @@ def flat_map[A, B, E, E2, R](
         effect.run_sync(result)  # 4
         ```
     """
-    f_cast = cast(Callable[[A], Effect[B, Any, R]], f)
+    f_cast = cast(Callable[[A], Effect[B, Any, R1 | R2]], f)
 
-    def _apply(eff: Effect[A, E, R]) -> Effect[B, E | E2, R]:
-        return cast(Effect[B, E | E2, R], FlatMap(eff, f_cast))
+    def _apply(eff: Effect[A, E, R1]) -> Effect[B, E | E2, R1 | R2]:
+        return cast(Effect[B, E | E2, R1 | R2], FlatMap(eff, f_cast))
 
     return _apply
 
@@ -199,9 +199,9 @@ def map_error[A, E, E2, R](
     return lambda effect: MapError(effect, f)
 
 
-def tap[A, B, E, E2, R](
-    f: Callable[[A], Effect[B, E2, R]],
-) -> Callable[[Effect[A, E, R]], Effect[A, E | E2, R]]:
+def tap[A, B, E, E2, R1, R2](
+    f: Callable[[A], Effect[B, E2, R2]],
+) -> Callable[[Effect[A, E, R1]], Effect[A, E | E2, R1 | R2]]:
     """
     Inspect the success value without modifying it.
 
@@ -230,17 +230,17 @@ def tap[A, B, E, E2, R](
         result = tap_fn(effect.succeed(42))
         ```
     """
-    f_cast = cast(Callable[[A], Effect[Any, Any, R]], f)
+    f_cast = cast(Callable[[A], Effect[Any, Any, R1 | R2]], f)
 
-    def _apply(eff: Effect[A, E, R]) -> Effect[A, E | E2, R]:
-        return cast(Effect[A, E | E2, R], Tap(eff, f_cast))
+    def _apply(eff: Effect[A, E, R1]) -> Effect[A, E | E2, R1 | R2]:
+        return cast(Effect[A, E | E2, R1 | R2], Tap(eff, f_cast))
 
     return _apply
 
 
-def tap_error[A, B, E, E2, R](
-    f: Callable[[E], Effect[B, E2, R]],
-) -> Callable[[Effect[A, E, R]], Effect[A, E | E2, R]]:
+def tap_error[A, B, E, E2, R1, R2](
+    f: Callable[[E], Effect[B, E2, R2]],
+) -> Callable[[Effect[A, E, R1]], Effect[A, E | E2, R1 | R2]]:
     """
     Inspect the error value without modifying it.
 
@@ -262,10 +262,10 @@ def tap_error[A, B, E, E2, R](
         )
         ```
     """
-    f_cast = cast(Callable[[E], Effect[Any, Any, R]], f)
+    f_cast = cast(Callable[[E], Effect[Any, Any, R1 | R2]], f)
 
-    def _apply(eff: Effect[A, E, R]) -> Effect[A, E | E2, R]:
-        return cast(Effect[A, E | E2, R], TapError(eff, f_cast))
+    def _apply(eff: Effect[A, E, R1]) -> Effect[A, E | E2, R1 | R2]:
+        return cast(Effect[A, E | E2, R1 | R2], TapError(eff, f_cast))
 
     return _apply
 

@@ -6,15 +6,16 @@ that operate on them. Import as `Effect` for the Effect TS-like API.
 """
 
 from collections.abc import Awaitable, Callable
-from typing import Never
+from typing import Never, overload
 
 import pyfect.either as either_module
 import pyfect.option as option_module
 
+# Re-export Effect primitives from primitives module
+from pyfect.context import Context
+
 # Re-export Exit types from exit module for backward compatibility
 from pyfect.exit import Exit, Failure, Success
-
-# Re-export Effect primitives from primitives module
 from pyfect.primitives import (
     Async,
     Effect,
@@ -23,6 +24,8 @@ from pyfect.primitives import (
     Ignore,
     Map,
     MapError,
+    Provide,
+    Service,
     Succeed,
     Suspend,
     Sync,
@@ -159,9 +162,72 @@ def suspend[A, E = Never, R = Never](thunk: Callable[[], Effect[A, E, R]]) -> Ef
     return Suspend(thunk)
 
 
-# ============================================================================
-# Re-exports for backward compatibility
-# ============================================================================
+@overload
+def service[S1](tag: type[S1], /) -> Effect[S1, Never, S1]: ...
+
+
+@overload
+def service[S1, S2](tag1: type[S1], tag2: type[S2], /) -> Effect[tuple[S1, S2], Never, S1 | S2]: ...
+
+
+@overload
+def service[S1, S2, S3](
+    tag1: type[S1], tag2: type[S2], tag3: type[S3], /
+) -> Effect[tuple[S1, S2, S3], Never, S1 | S2 | S3]: ...
+
+
+@overload
+def service[S1, S2, S3, S4](
+    tag1: type[S1], tag2: type[S2], tag3: type[S3], tag4: type[S4], /
+) -> Effect[tuple[S1, S2, S3, S4], Never, S1 | S2 | S3 | S4]: ...
+
+
+@overload
+def service[S1, S2, S3, S4, S5](
+    tag1: type[S1], tag2: type[S2], tag3: type[S3], tag4: type[S4], tag5: type[S5], /
+) -> Effect[tuple[S1, S2, S3, S4, S5], Never, S1 | S2 | S3 | S4 | S5]: ...
+
+
+@overload
+def service[S1, S2, S3, S4, S5, S6](
+    tag1: type[S1],
+    tag2: type[S2],
+    tag3: type[S3],
+    tag4: type[S4],
+    tag5: type[S5],
+    tag6: type[S6],
+    /,
+) -> Effect[tuple[S1, S2, S3, S4, S5, S6], Never, S1 | S2 | S3 | S4 | S5 | S6]: ...
+
+
+def service(*tags: type) -> Effect:  # type: ignore[type-arg, misc]
+    """
+    Create an effect that looks up one or more services from the context.
+
+    For a single tag, returns the service instance directly.
+    For multiple tags, returns a tuple of instances in the same order.
+    The effect requires all provided tags as context.
+
+    Example:
+        ```python
+        # Single service
+        eff = service(Database)  # Effect[Database, Never, Database]
+
+        # Multiple services
+        eff = service(Database, Logger)  # Effect[tuple[Database, Logger], Never, Database | Logger]
+        ```
+    """
+    if len(tags) == 1:
+        return Service(tags[0])
+    t1, t2, *rest = tags
+    result: Effect = FlatMap(  # type: ignore[type-arg]
+        Service(t1),
+        lambda s1, t=t2: Map(Service(t), lambda s2: (s1, s2)),  # type: ignore[misc]
+    )
+    for tag in rest:
+        result = FlatMap(result, lambda acc, t=tag: Map(Service(t), lambda s: (*acc, s)))  # type: ignore[misc]
+    return result
+
 
 # ============================================================================
 # Interop
@@ -218,6 +284,28 @@ def from_either[R, L](e: either_module.Either[R, L]) -> Effect[R, L]:
             return Fail(value)
 
 
+def provide[A, E, R](context: Context[R]) -> Callable[[Effect[A, E, R]], Effect[A, E, Never]]:
+    """
+    Provide a context to an effect, satisfying all its requirements.
+
+    Designed to be used with pipe:
+
+    Example:
+        ```python
+        from pyfect import effect, context, pipe
+
+        runnable = pipe(
+            program,
+            effect.provide(context.make((Database, db_impl))),
+        )
+        # runnable: Effect[str, NotFoundError, Never]
+
+        effect.run_sync(runnable)
+        ```
+    """
+    return lambda eff: Provide(eff, context)
+
+
 # Re-export combinators
 from pyfect.combinators import as_, flat_map, ignore, map, map_error, tap, tap_error  # noqa: E402
 
@@ -240,6 +328,8 @@ __all__ = [
     "Map",
     "MapError",
     "Never",
+    "Provide",
+    "Service",
     "Succeed",
     "Success",
     "Suspend",
@@ -257,10 +347,12 @@ __all__ = [
     "ignore",
     "map",
     "map_error",
+    "provide",
     "run_async",
     "run_async_exit",
     "run_sync",
     "run_sync_exit",
+    "service",
     "succeed",
     "suspend",
     "sync",

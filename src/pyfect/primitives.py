@@ -7,7 +7,10 @@ of effects, and the Effect union type that combines them all.
 
 from collections.abc import Awaitable, Callable
 from dataclasses import dataclass
-from typing import Any, Never
+from typing import TYPE_CHECKING, Any, Never
+
+if TYPE_CHECKING:
+    from pyfect.context import Context
 
 # ============================================================================
 # Effect Primitives (Tagged Union)
@@ -110,6 +113,25 @@ class MapError[A, E, E2, R]:
     f: Callable[[E], E2]
 
 
+@dataclass(frozen=True)
+class Service[S]:
+    """An effect that looks up a service from the context."""
+
+    tag: type[S]
+
+
+@dataclass(frozen=True)
+class Provide[A, E]:
+    """An effect that runs the inner effect with a provided context.
+
+    Satisfies all requirements of the inner effect, so the resulting
+    effect has R = Never.
+    """
+
+    effect: "Effect[A, E, Any]"
+    context: "Context[Any]"
+
+
 # Type alias for the Effect union
 type Effect[A, E = Never, R = Never] = (
     Succeed[A, E, R]
@@ -125,6 +147,8 @@ type Effect[A, E = Never, R = Never] = (
     | FlatMap[Any, A, E, R]
     | Ignore[Any, Any, R]
     | MapError[A, Any, E, R]
+    | Service[A]
+    | Provide[A, E]
 )
 
 
@@ -136,6 +160,8 @@ __all__ = [
     "Ignore",
     "Map",
     "MapError",
+    "Provide",
+    "Service",
     "Succeed",
     "Suspend",
     "Sync",
