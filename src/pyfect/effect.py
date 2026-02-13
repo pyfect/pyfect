@@ -37,7 +37,7 @@ from pyfect.primitives import (
 # ============================================================================
 
 
-def succeed[A, E = Never](value: A) -> Effect[A, E, None]:
+def succeed[A, E = Never](value: A) -> Effect[A, E]:
     """
     Create an effect that succeeds with a value.
 
@@ -49,7 +49,7 @@ def succeed[A, E = Never](value: A) -> Effect[A, E, None]:
     return Succeed(value)
 
 
-def fail[E, A = Never](error: E) -> Effect[A, E, None]:
+def fail[E, A = Never](error: E) -> Effect[A, E]:
     """
     Create an effect that fails with an error.
 
@@ -61,7 +61,7 @@ def fail[E, A = Never](error: E) -> Effect[A, E, None]:
     return Fail(error)
 
 
-def sync[A, E = Never](thunk: Callable[[], A]) -> Effect[A, E, None]:
+def sync[A, E = Never](thunk: Callable[[], A]) -> Effect[A, E]:
     """
     Create an effect from a synchronous computation.
 
@@ -78,7 +78,7 @@ def sync[A, E = Never](thunk: Callable[[], A]) -> Effect[A, E, None]:
     return Sync(thunk)
 
 
-def async_[A, E = Never](thunk: Callable[[], Awaitable[A]]) -> Effect[A, E, None]:
+def async_[A, E = Never](thunk: Callable[[], Awaitable[A]]) -> Effect[A, E]:
     """
     Create an effect from an asynchronous computation.
 
@@ -97,7 +97,7 @@ def async_[A, E = Never](thunk: Callable[[], Awaitable[A]]) -> Effect[A, E, None
     return Async(thunk)
 
 
-def try_sync[A](thunk: Callable[[], A]) -> Effect[A, Exception, None]:
+def try_sync[A](thunk: Callable[[], A]) -> Effect[A, Exception]:
     """
     Create an effect from a synchronous computation that might throw.
 
@@ -112,7 +112,7 @@ def try_sync[A](thunk: Callable[[], A]) -> Effect[A, Exception, None]:
     return TrySync(thunk)
 
 
-def try_async[A](thunk: Callable[[], Awaitable[A]]) -> Effect[A, Exception, None]:
+def try_async[A](thunk: Callable[[], Awaitable[A]]) -> Effect[A, Exception]:
     """
     Create an effect from an asynchronous computation that might throw.
 
@@ -133,7 +133,7 @@ def try_async[A](thunk: Callable[[], Awaitable[A]]) -> Effect[A, Exception, None
     return TryAsync(thunk)
 
 
-def suspend[A, E = Never, R = None](thunk: Callable[[], Effect[A, E, R]]) -> Effect[A, E, R]:
+def suspend[A, E = Never, R = Never](thunk: Callable[[], Effect[A, E, R]]) -> Effect[A, E, R]:
     """
     Delay the creation of an effect until runtime.
 
@@ -170,7 +170,7 @@ def suspend[A, E = Never, R = None](thunk: Callable[[], Effect[A, E, R]]) -> Eff
 
 def from_option[A, E](
     error: Callable[[], E],
-) -> Callable[[option_module.Option[A]], Effect[A, E, None]]:
+) -> Callable[[option_module.Option[A]], Effect[A, E]]:
     """
     Convert an Option into an Effect.
 
@@ -187,7 +187,7 @@ def from_option[A, E](
         ```
     """
 
-    def _from_option(opt: option_module.Option[A]) -> Effect[A, E, None]:
+    def _from_option(opt: option_module.Option[A]) -> Effect[A, E]:
         match opt:
             case option_module.Some(value):
                 return Succeed(value)
@@ -197,7 +197,7 @@ def from_option[A, E](
     return _from_option
 
 
-def from_either[R, L](e: either_module.Either[R, L]) -> Effect[R, L, None]:
+def from_either[R, L](e: either_module.Either[R, L]) -> Effect[R, L]:
     """
     Convert an Either into an Effect.
 

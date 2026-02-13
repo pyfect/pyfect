@@ -1,7 +1,6 @@
 """Tests for tap and tap_error combinators."""
 
 import asyncio
-from typing import Never
 
 import pytest
 
@@ -51,7 +50,7 @@ async def test_tap_async() -> None:
         await asyncio.sleep(0.01)
         executed.append(f"Async: {x}")
 
-    def do_log(x: int) -> effect.Effect[None, Never, None]:
+    def do_log(x: int) -> effect.Effect[None]:
         return effect.async_(lambda: async_log(x))
 
     eff = effect.tap(do_log)(effect.succeed(42))
@@ -108,7 +107,7 @@ async def test_tap_error_async() -> None:
         await asyncio.sleep(0.01)
         executed.append(f"Async error: {e}")
 
-    def do_log_error(e: RuntimeError) -> effect.Effect[None, Never, None]:
+    def do_log_error(e: RuntimeError) -> effect.Effect[None]:
         return effect.async_(lambda: async_log_error(e))
 
     eff = effect.tap_error(do_log_error)(effect.fail(RuntimeError("async error")))

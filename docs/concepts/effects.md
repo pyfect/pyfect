@@ -20,14 +20,14 @@ The three type parameters are:
 |-----------|---------|---------|
 | `A` | The success value type | — |
 | `E` | The error type | `Never` |
-| `R` | The required context type | `None` |
+| `R` | The required context type | `Never` |
 
-`E = Never` means the effect cannot fail. `R = None` means no context is required. Both can be omitted when using the defaults:
+`E = Never` means the effect cannot fail. `R = Never` means no context is required. Both can be omitted when using the defaults:
 
 ```python
 effect.Effect[int]        # succeeds with int, cannot fail, no context
 effect.Effect[int, str]   # succeeds with int, fails with str, no context
-effect.Effect[int, str, MyContext]  # full form
+effect.Effect[int, str, MyDependency]  # full form
 ```
 
 ## Why lazy?
@@ -56,7 +56,7 @@ The simplest constructors — wrap an already-known value or error:
 ```python
 from pyfect import effect
 
-ok = effect.succeed(42)        # Effect[int, Never]
+ok = effect.succeed(42)        # Effect[int]
 err = effect.fail("not found") # Effect[Never, str]
 ```
 
@@ -127,4 +127,4 @@ effect.run_sync(good)  # 3 (fresh effect, fresh value)
 
 ## The context parameter `R`
 
-The third type parameter `R` represents a required context — dependencies that the effect needs but does not create itself. This is reserved for a future release. For now, all effects use `R = None`, meaning no context is required.
+The third type parameter `R` represents a required context — dependencies that the effect needs but does not create itself. This is reserved for a future release. For now, all effects use `R = Never`, meaning no context is required.

@@ -7,7 +7,7 @@ converting effect descriptions into actual computation.
 
 import contextlib
 from collections.abc import Awaitable
-from typing import Any, cast
+from typing import Any, Never, cast
 
 from pyfect import exit
 from pyfect.exit import Exit
@@ -33,7 +33,7 @@ from pyfect.primitives import (
 # ============================================================================
 
 
-def run_sync[A, E](effect: Effect[A, E, None]) -> A:  # noqa: PLR0911, PLR0912
+def run_sync[A, E](effect: Effect[A, E, Never]) -> A:  # noqa: PLR0911, PLR0912
     """
     Execute a synchronous effect and return its value.
 
@@ -118,7 +118,7 @@ def run_sync[A, E](effect: Effect[A, E, None]) -> A:  # noqa: PLR0911, PLR0912
             raise RuntimeError(msg)
 
 
-def run_async[A, E](effect: Effect[A, E, None]) -> Awaitable[A]:
+def run_async[A, E](effect: Effect[A, E, Never]) -> Awaitable[A]:
     """
     Execute an effect asynchronously and return an awaitable.
 
@@ -209,7 +209,7 @@ def run_async[A, E](effect: Effect[A, E, None]) -> Awaitable[A]:
     return execute()
 
 
-def run_sync_exit[A, E](effect: Effect[A, E, None]) -> Exit[A, E]:  # noqa: PLR0911, PLR0912
+def run_sync_exit[A, E](effect: Effect[A, E, Never]) -> Exit[A, E]:  # noqa: PLR0911, PLR0912
     """
     Execute a synchronous effect and return Exit instead of throwing.
 
@@ -300,7 +300,7 @@ def run_sync_exit[A, E](effect: Effect[A, E, None]) -> Exit[A, E]:  # noqa: PLR0
             raise RuntimeError(msg)
 
 
-def run_async_exit[A, E](effect: Effect[A, E, None]) -> Awaitable[Exit[A, E]]:
+def run_async_exit[A, E](effect: Effect[A, E, Never]) -> Awaitable[Exit[A, E]]:
     """
     Execute an effect asynchronously and return Exit instead of throwing.
 

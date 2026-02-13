@@ -4,7 +4,7 @@ pyfect is in early development. The core effect system and `Option` type are sta
 
 ## Context & Dependency Injection
 
-The `R` type parameter in `Effect[A, E, R]` is already part of the type signature but currently always `None`. The plan is to give it meaning: `R` declares the services an effect requires to run.
+The `R` type parameter in `Effect[A, E, R]` is already part of the type signature but currently always `Never`. The plan is to give it meaning: `R` declares the services an effect requires to run.
 
 This enables dependency injection without globals — effects declare their requirements in the type, and the runtime ensures they are satisfied before the effect runs. The design will follow Effect's `Layer` model for composing and providing services.
 

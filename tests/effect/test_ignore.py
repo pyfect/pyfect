@@ -278,7 +278,7 @@ async def test_ignore_async_exception_handling() -> None:
 def test_ignore_preserves_context_type() -> None:
     """Test that ignore preserves the context type R."""
     # This is mainly for type checking, but we can verify behavior
-    # Effect[int, str, None] -> ignore() -> Effect[None, Never, None]
+    # Effect[int, str] -> ignore() -> Effect[None]
 
     result = pipe(
         effect.succeed(42),

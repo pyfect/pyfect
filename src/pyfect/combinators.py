@@ -104,7 +104,7 @@ def flat_map[A, B, E, E2, R](
         ```python
         from pyfect import effect, pipe
 
-        def fetch_user(user_id: int) -> effect.Effect[str, str, None]:
+        def fetch_user(user_id: int) -> effect.Effect[str, str]:
             return effect.succeed(f"User{user_id}")
 
         # Chain effects where next depends on previous result

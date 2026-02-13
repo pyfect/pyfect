@@ -111,7 +111,7 @@ class MapError[A, E, E2, R]:
 
 
 # Type alias for the Effect union
-type Effect[A, E = Never, R = None] = (
+type Effect[A, E = Never, R = Never] = (
     Succeed[A, E, R]
     | Fail[A, E, R]
     | Sync[A, E, R]
