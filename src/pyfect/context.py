@@ -96,6 +96,64 @@ def make[S1, S2, S3, S4, S5, S6](
 ) -> Context[S1 | S2 | S3 | S4 | S5 | S6]: ...
 
 
+@overload
+def make[S1, S2, S3, S4, S5, S6, S7](
+    s1: tuple[type[S1], S1],
+    s2: tuple[type[S2], S2],
+    s3: tuple[type[S3], S3],
+    s4: tuple[type[S4], S4],
+    s5: tuple[type[S5], S5],
+    s6: tuple[type[S6], S6],
+    s7: tuple[type[S7], S7],
+    /,
+) -> Context[S1 | S2 | S3 | S4 | S5 | S6 | S7]: ...
+
+
+@overload
+def make[S1, S2, S3, S4, S5, S6, S7, S8](
+    s1: tuple[type[S1], S1],
+    s2: tuple[type[S2], S2],
+    s3: tuple[type[S3], S3],
+    s4: tuple[type[S4], S4],
+    s5: tuple[type[S5], S5],
+    s6: tuple[type[S6], S6],
+    s7: tuple[type[S7], S7],
+    s8: tuple[type[S8], S8],
+    /,
+) -> Context[S1 | S2 | S3 | S4 | S5 | S6 | S7 | S8]: ...
+
+
+@overload
+def make[S1, S2, S3, S4, S5, S6, S7, S8, S9](
+    s1: tuple[type[S1], S1],
+    s2: tuple[type[S2], S2],
+    s3: tuple[type[S3], S3],
+    s4: tuple[type[S4], S4],
+    s5: tuple[type[S5], S5],
+    s6: tuple[type[S6], S6],
+    s7: tuple[type[S7], S7],
+    s8: tuple[type[S8], S8],
+    s9: tuple[type[S9], S9],
+    /,
+) -> Context[S1 | S2 | S3 | S4 | S5 | S6 | S7 | S8 | S9]: ...
+
+
+@overload
+def make[S1, S2, S3, S4, S5, S6, S7, S8, S9, S10](
+    s1: tuple[type[S1], S1],
+    s2: tuple[type[S2], S2],
+    s3: tuple[type[S3], S3],
+    s4: tuple[type[S4], S4],
+    s5: tuple[type[S5], S5],
+    s6: tuple[type[S6], S6],
+    s7: tuple[type[S7], S7],
+    s8: tuple[type[S8], S8],
+    s9: tuple[type[S9], S9],
+    s10: tuple[type[S10], S10],
+    /,
+) -> Context[S1 | S2 | S3 | S4 | S5 | S6 | S7 | S8 | S9 | S10]: ...
+
+
 def make(*args: tuple[type, Any]) -> Context[Any]:
     """Create a context from one or more (tag, implementation) pairs."""
     return Context(dict(args))

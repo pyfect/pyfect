@@ -200,6 +200,66 @@ def service[S1, S2, S3, S4, S5, S6](
 ) -> Effect[tuple[S1, S2, S3, S4, S5, S6], Never, S1 | S2 | S3 | S4 | S5 | S6]: ...
 
 
+@overload
+def service[S1, S2, S3, S4, S5, S6, S7](
+    tag1: type[S1],
+    tag2: type[S2],
+    tag3: type[S3],
+    tag4: type[S4],
+    tag5: type[S5],
+    tag6: type[S6],
+    tag7: type[S7],
+    /,
+) -> Effect[tuple[S1, S2, S3, S4, S5, S6], Never, S1 | S2 | S3 | S4 | S5 | S6 | S7]: ...
+
+
+@overload
+def service[S1, S2, S3, S4, S5, S6, S7, S8](
+    tag1: type[S1],
+    tag2: type[S2],
+    tag3: type[S3],
+    tag4: type[S4],
+    tag5: type[S5],
+    tag6: type[S6],
+    tag7: type[S7],
+    tag8: type[S8],
+    /,
+) -> Effect[tuple[S1, S2, S3, S4, S5, S6], Never, S1 | S2 | S3 | S4 | S5 | S6 | S7 | S8]: ...
+
+
+@overload
+def service[S1, S2, S3, S4, S5, S6, S7, S8, S9](
+    tag1: type[S1],
+    tag2: type[S2],
+    tag3: type[S3],
+    tag4: type[S4],
+    tag5: type[S5],
+    tag6: type[S6],
+    tag7: type[S7],
+    tag8: type[S8],
+    tag9: type[S9],
+    /,
+) -> Effect[tuple[S1, S2, S3, S4, S5, S6], Never, S1 | S2 | S3 | S4 | S5 | S6 | S7 | S8 | S9]: ...
+
+
+@overload
+def service[S1, S2, S3, S4, S5, S6, S7, S8, S9, S10](
+    tag1: type[S1],
+    tag2: type[S2],
+    tag3: type[S3],
+    tag4: type[S4],
+    tag5: type[S5],
+    tag6: type[S6],
+    tag7: type[S7],
+    tag8: type[S8],
+    tag9: type[S9],
+    tag10: type[S10],
+    /,
+) -> Effect[
+    tuple[S1, S2, S3, S4, S5, S6], Never, S1 | S2 | S3 | S4 | S5 | S6 | S7 | S8 | S9 | S10
+]: ...
+
+
 def service(*tags: type) -> Effect:  # type: ignore[type-arg, misc]
     """
     Create an effect that looks up one or more services from the context.
