@@ -210,7 +210,7 @@ def test_map_and_map_error_on_failure() -> None:
 def test_map_error_with_flat_map() -> None:
     """Test map_error with flat_map."""
 
-    def may_fail(x: int) -> effect.Effect[int, str, None]:
+    def may_fail(x: int) -> effect.Effect[int, str]:
         if x < 0:
             return effect.fail("negative number")
         return effect.succeed(x * 2)
@@ -292,14 +292,14 @@ def test_map_error_string_to_exception() -> None:
 
 def test_map_error_preserves_context() -> None:
     """Test that map_error preserves the context type R."""
-    # Effect[int, str, None] -> map_error -> Effect[int, CustomError, None]
+    # Effect[int, str] -> map_error -> Effect[int, CustomError]
 
     class CustomError(Exception):
         pass
 
     result = pipe(
         effect.fail("error"),
-        effect.map_error(lambda e: CustomError(e)),
+        effect.map_error(CustomError),
     )
 
     with pytest.raises(CustomError, match="error"):
@@ -335,7 +335,7 @@ def test_map_error_real_world_example() -> None:
             self.message = message
             super().__init__(f"{field}: {message}")
 
-    def validate_age(age: int) -> effect.Effect[int, str, None]:
+    def validate_age(age: int) -> effect.Effect[int, str]:
         if age < 0:
             return effect.fail("age cannot be negative")
         if age > 150:  # noqa: PLR2004

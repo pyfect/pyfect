@@ -17,6 +17,12 @@ G = TypeVar("G")
 H = TypeVar("H")
 I = TypeVar("I")  # noqa: E741
 J = TypeVar("J")
+K = TypeVar("K")
+L = TypeVar("L")
+M = TypeVar("M")
+N = TypeVar("N")
+O = TypeVar("O")  # noqa: E741
+P = TypeVar("P")
 
 
 # Overloads for type safety with different numbers of functions
@@ -115,6 +121,123 @@ def pipe(
     f9: Callable[[I], J],
     /,
 ) -> J: ...
+
+
+@overload
+def pipe(
+    value: A,
+    f1: Callable[[A], B],
+    f2: Callable[[B], C],
+    f3: Callable[[C], D],
+    f4: Callable[[D], E],
+    f5: Callable[[E], F],
+    f6: Callable[[F], G],
+    f7: Callable[[G], H],
+    f8: Callable[[H], I],
+    f9: Callable[[I], J],
+    f10: Callable[[J], K],
+    /,
+) -> K: ...
+
+
+@overload
+def pipe(
+    value: A,
+    f1: Callable[[A], B],
+    f2: Callable[[B], C],
+    f3: Callable[[C], D],
+    f4: Callable[[D], E],
+    f5: Callable[[E], F],
+    f6: Callable[[F], G],
+    f7: Callable[[G], H],
+    f8: Callable[[H], I],
+    f9: Callable[[I], J],
+    f10: Callable[[J], K],
+    f11: Callable[[K], L],
+    /,
+) -> L: ...
+
+
+@overload
+def pipe(
+    value: A,
+    f1: Callable[[A], B],
+    f2: Callable[[B], C],
+    f3: Callable[[C], D],
+    f4: Callable[[D], E],
+    f5: Callable[[E], F],
+    f6: Callable[[F], G],
+    f7: Callable[[G], H],
+    f8: Callable[[H], I],
+    f9: Callable[[I], J],
+    f10: Callable[[J], K],
+    f11: Callable[[K], L],
+    f12: Callable[[L], M],
+    /,
+) -> M: ...
+
+
+@overload
+def pipe(
+    value: A,
+    f1: Callable[[A], B],
+    f2: Callable[[B], C],
+    f3: Callable[[C], D],
+    f4: Callable[[D], E],
+    f5: Callable[[E], F],
+    f6: Callable[[F], G],
+    f7: Callable[[G], H],
+    f8: Callable[[H], I],
+    f9: Callable[[I], J],
+    f10: Callable[[J], K],
+    f11: Callable[[K], L],
+    f12: Callable[[L], M],
+    f13: Callable[[M], N],
+    /,
+) -> N: ...
+
+
+@overload
+def pipe(
+    value: A,
+    f1: Callable[[A], B],
+    f2: Callable[[B], C],
+    f3: Callable[[C], D],
+    f4: Callable[[D], E],
+    f5: Callable[[E], F],
+    f6: Callable[[F], G],
+    f7: Callable[[G], H],
+    f8: Callable[[H], I],
+    f9: Callable[[I], J],
+    f10: Callable[[J], K],
+    f11: Callable[[K], L],
+    f12: Callable[[L], M],
+    f13: Callable[[M], N],
+    f14: Callable[[N], O],
+    /,
+) -> O: ...
+
+
+@overload
+def pipe(
+    value: A,
+    f1: Callable[[A], B],
+    f2: Callable[[B], C],
+    f3: Callable[[C], D],
+    f4: Callable[[D], E],
+    f5: Callable[[E], F],
+    f6: Callable[[F], G],
+    f7: Callable[[G], H],
+    f8: Callable[[H], I],
+    f9: Callable[[I], J],
+    f10: Callable[[J], K],
+    f11: Callable[[K], L],
+    f12: Callable[[L], M],
+    f13: Callable[[M], N],
+    f14: Callable[[N], O],
+    f15: Callable[[O], P],
+    /,
+) -> P: ...
 
 
 def pipe(value: object, *fns: Callable[..., Any]) -> object:

@@ -7,7 +7,10 @@ of effects, and the Effect union type that combines them all.
 
 from collections.abc import Awaitable, Callable
 from dataclasses import dataclass
-from typing import Any, Never
+from typing import TYPE_CHECKING, Any, Never
+
+if TYPE_CHECKING:
+    from pyfect.context import Context
 
 # ============================================================================
 # Effect Primitives (Tagged Union)
@@ -68,7 +71,7 @@ class Tap[A, E, R]:
     """An effect that inspects the success value without modifying it."""
 
     effect: "Effect[A, E, R]"
-    f: "Callable[[A], Effect[Any, Any, R]]"
+    f: "Callable[[A], Effect[Any, Any, Any]]"
 
 
 @dataclass(frozen=True)
@@ -76,7 +79,7 @@ class TapError[A, E, R]:
     """An effect that inspects the error value without modifying it."""
 
     effect: "Effect[A, E, R]"
-    f: "Callable[[E], Effect[Any, Any, R]]"
+    f: "Callable[[E], Effect[Any, Any, Any]]"
 
 
 @dataclass(frozen=True)
@@ -92,7 +95,7 @@ class FlatMap[A, B, E, R]:
     """An effect that chains effects together (monadic bind)."""
 
     effect: "Effect[A, E, R]"
-    f: "Callable[[A], Effect[B, Any, R]]"
+    f: "Callable[[A], Effect[B, Any, Any]]"
 
 
 @dataclass(frozen=True)
@@ -110,8 +113,35 @@ class MapError[A, E, E2, R]:
     f: Callable[[E], E2]
 
 
+@dataclass(frozen=True)
+class Service[S]:
+    """An effect that looks up a service from the context."""
+
+    tag: type[S]
+
+
+@dataclass(frozen=True)
+class Provide[A, E]:
+    """An effect that runs the inner effect with a provided context.
+
+    Satisfies all requirements of the inner effect, so the resulting
+    effect has R = Never.
+    """
+
+    effect: "Effect[A, E, Any]"
+    context: "Context[Any]"
+
+
+@dataclass(frozen=True)
+class MemoizedEffect[A, E, R]:
+    """Wraps a layer's effect so the runtime can memoize it by layer_id."""
+
+    effect: "Effect[A, E, R]"
+    layer_id: int
+
+
 # Type alias for the Effect union
-type Effect[A, E = Never, R = None] = (
+type Effect[A, E = Never, R = Never] = (
     Succeed[A, E, R]
     | Fail[A, E, R]
     | Sync[A, E, R]
@@ -125,6 +155,9 @@ type Effect[A, E = Never, R = None] = (
     | FlatMap[Any, A, E, R]
     | Ignore[Any, Any, R]
     | MapError[A, Any, E, R]
+    | Service[A]
+    | Provide[A, E]
+    | MemoizedEffect[A, E, R]
 )
 
 
@@ -136,6 +169,9 @@ __all__ = [
     "Ignore",
     "Map",
     "MapError",
+    "MemoizedEffect",
+    "Provide",
+    "Service",
     "Succeed",
     "Suspend",
     "Sync",

@@ -60,7 +60,7 @@ async def test_map_async_effect() -> None:
 
 def test_map_preserves_errors() -> None:
     """Test that map doesn't affect errors - they pass through unchanged."""
-    eff: effect.Effect[int, ValueError, None] = effect.fail(ValueError("oops"))
+    eff: effect.Effect[int, ValueError] = effect.fail(ValueError("oops"))
 
     def double(x: int) -> int:
         return x * 2
@@ -73,7 +73,7 @@ def test_map_preserves_errors() -> None:
 
 def test_map_preserves_errors_with_exit() -> None:
     """Test that map preserves errors when using run_sync_exit."""
-    eff: effect.Effect[int, str, None] = effect.fail("error message")
+    eff: effect.Effect[int, str] = effect.fail("error message")
 
     def double(x: int) -> int:
         return x * 2
@@ -90,7 +90,7 @@ def test_map_preserves_errors_with_exit() -> None:
 
 async def test_map_preserves_errors_async_exit() -> None:
     """Test that map preserves errors when using run_async_exit."""
-    eff: effect.Effect[int, str, None] = effect.fail("async error")
+    eff: effect.Effect[int, str] = effect.fail("async error")
 
     def double(x: int) -> int:
         return x * 2

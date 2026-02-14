@@ -1,7 +1,6 @@
 """Tests for try_sync and try_async constructors."""
 
 import asyncio
-from typing import Never
 
 import pytest
 
@@ -167,7 +166,7 @@ async def test_try_async_with_tap() -> None:
         await asyncio.sleep(0.01)
         executed.append(x)
 
-    def do_log(x: int) -> effect.Effect[None, Never, None]:
+    def do_log(x: int) -> effect.Effect[None]:
         return effect.async_(lambda: async_log(x))
 
     eff = effect.tap(do_log)(effect.try_async(async_computation))

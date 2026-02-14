@@ -30,10 +30,10 @@ def test_flat_map_multiple_chains() -> None:
 def test_flat_map_dependent_computation() -> None:
     """Test flat_map where each step depends on previous result."""
 
-    def fetch_user(user_id: int) -> effect.Effect[str, str, None]:
+    def fetch_user(user_id: int) -> effect.Effect[str, str]:
         return effect.succeed(f"User{user_id}")
 
-    def fetch_email(username: str) -> effect.Effect[str, str, None]:
+    def fetch_email(username: str) -> effect.Effect[str, str]:
         return effect.succeed(f"{username}@example.com")
 
     result = pipe(
@@ -60,7 +60,7 @@ def test_flat_map_failure_in_first_effect() -> None:
     """Test that flat_map doesn't execute if first effect fails."""
     executed = []
 
-    def should_not_run(x: int) -> effect.Effect[int, str, None]:
+    def should_not_run(x: int) -> effect.Effect[int, str]:
         executed.append(x)
         return effect.succeed(x * 2)
 
@@ -170,7 +170,7 @@ def test_flat_map_avoids_nesting() -> None:
     # Without flat_map, you'd get Effect[Effect[int]]
     # With flat_map, you get Effect[int]
 
-    def get_nested(x: int) -> effect.Effect[int, str, None]:
+    def get_nested(x: int) -> effect.Effect[int, str]:
         return effect.succeed(x * 2)
 
     result = pipe(
@@ -222,7 +222,7 @@ def test_flat_map_is_lazy() -> None:
     """Test that flat_map doesn't execute until run."""
     executed = []
 
-    def track_execution(x: int) -> effect.Effect[int, str, None]:
+    def track_execution(x: int) -> effect.Effect[int, str]:
         executed.append(x)
         return effect.succeed(x * 2)
 
@@ -262,7 +262,7 @@ def test_flat_map_with_try_sync_that_fails() -> None:
         msg = "initial error"
         raise ValueError(msg)
 
-    def should_not_run(x: int) -> effect.Effect[int, Exception, None]:
+    def should_not_run(x: int) -> effect.Effect[int, Exception]:
         return effect.succeed(x * 2)
 
     result = pipe(
@@ -282,7 +282,7 @@ def test_flat_map_with_try_sync_that_fails() -> None:
 def test_flat_map_that_returns_failure() -> None:
     """Test flat_map where the returned effect fails."""
 
-    def return_failure(x: int) -> effect.Effect[int, str, None]:
+    def return_failure(x: int) -> effect.Effect[int, str]:
         return effect.fail(f"Failed at {x}")
 
     result = pipe(
@@ -301,15 +301,15 @@ def test_flat_map_that_returns_failure() -> None:
 def test_flat_map_complex_chain() -> None:
     """Test a complex chain simulating a real-world scenario."""
 
-    def validate_id(user_id: int) -> effect.Effect[int, str, None]:
+    def validate_id(user_id: int) -> effect.Effect[int, str]:
         if user_id <= 0:
             return effect.fail("Invalid user ID")
         return effect.succeed(user_id)
 
-    def fetch_user(user_id: int) -> effect.Effect[dict[str, str | int], str, None]:
+    def fetch_user(user_id: int) -> effect.Effect[dict[str, str | int], str]:
         return effect.succeed({"id": user_id, "name": f"User{user_id}"})
 
-    def extract_name(user: dict[str, str | int]) -> effect.Effect[str, str, None]:
+    def extract_name(user: dict[str, str | int]) -> effect.Effect[str, str]:
         return effect.succeed(str(user["name"]))
 
     result = pipe(
@@ -325,12 +325,12 @@ def test_flat_map_complex_chain() -> None:
 def test_flat_map_complex_chain_with_failure() -> None:
     """Test complex chain that fails at validation."""
 
-    def validate_id(user_id: int) -> effect.Effect[int, str, None]:
+    def validate_id(user_id: int) -> effect.Effect[int, str]:
         if user_id <= 0:
             return effect.fail("Invalid user ID")
         return effect.succeed(user_id)
 
-    def fetch_user(user_id: int) -> effect.Effect[dict[str, str | int], str, None]:
+    def fetch_user(user_id: int) -> effect.Effect[dict[str, str | int], str]:
         return effect.succeed({"id": user_id, "name": f"User{user_id}"})
 
     result = pipe(

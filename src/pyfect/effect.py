@@ -6,15 +6,17 @@ that operate on them. Import as `Effect` for the Effect TS-like API.
 """
 
 from collections.abc import Awaitable, Callable
-from typing import Never
+from typing import Any, Never, Protocol, cast, overload
 
 import pyfect.either as either_module
 import pyfect.option as option_module
 
+# Re-export Effect primitives from primitives module
+from pyfect.context import Context
+
 # Re-export Exit types from exit module for backward compatibility
 from pyfect.exit import Exit, Failure, Success
-
-# Re-export Effect primitives from primitives module
+from pyfect.layer import Layer
 from pyfect.primitives import (
     Async,
     Effect,
@@ -23,6 +25,8 @@ from pyfect.primitives import (
     Ignore,
     Map,
     MapError,
+    Provide,
+    Service,
     Succeed,
     Suspend,
     Sync,
@@ -37,7 +41,7 @@ from pyfect.primitives import (
 # ============================================================================
 
 
-def succeed[A, E = Never](value: A) -> Effect[A, E, None]:
+def succeed[A, E = Never](value: A) -> Effect[A, E]:
     """
     Create an effect that succeeds with a value.
 
@@ -49,7 +53,7 @@ def succeed[A, E = Never](value: A) -> Effect[A, E, None]:
     return Succeed(value)
 
 
-def fail[E, A = Never](error: E) -> Effect[A, E, None]:
+def fail[E, A = Never](error: E) -> Effect[A, E]:
     """
     Create an effect that fails with an error.
 
@@ -61,7 +65,7 @@ def fail[E, A = Never](error: E) -> Effect[A, E, None]:
     return Fail(error)
 
 
-def sync[A, E = Never](thunk: Callable[[], A]) -> Effect[A, E, None]:
+def sync[A, E = Never](thunk: Callable[[], A]) -> Effect[A, E]:
     """
     Create an effect from a synchronous computation.
 
@@ -78,7 +82,7 @@ def sync[A, E = Never](thunk: Callable[[], A]) -> Effect[A, E, None]:
     return Sync(thunk)
 
 
-def async_[A, E = Never](thunk: Callable[[], Awaitable[A]]) -> Effect[A, E, None]:
+def async_[A, E = Never](thunk: Callable[[], Awaitable[A]]) -> Effect[A, E]:
     """
     Create an effect from an asynchronous computation.
 
@@ -97,7 +101,7 @@ def async_[A, E = Never](thunk: Callable[[], Awaitable[A]]) -> Effect[A, E, None
     return Async(thunk)
 
 
-def try_sync[A](thunk: Callable[[], A]) -> Effect[A, Exception, None]:
+def try_sync[A](thunk: Callable[[], A]) -> Effect[A, Exception]:
     """
     Create an effect from a synchronous computation that might throw.
 
@@ -112,7 +116,7 @@ def try_sync[A](thunk: Callable[[], A]) -> Effect[A, Exception, None]:
     return TrySync(thunk)
 
 
-def try_async[A](thunk: Callable[[], Awaitable[A]]) -> Effect[A, Exception, None]:
+def try_async[A](thunk: Callable[[], Awaitable[A]]) -> Effect[A, Exception]:
     """
     Create an effect from an asynchronous computation that might throw.
 
@@ -133,7 +137,7 @@ def try_async[A](thunk: Callable[[], Awaitable[A]]) -> Effect[A, Exception, None
     return TryAsync(thunk)
 
 
-def suspend[A, E = Never, R = None](thunk: Callable[[], Effect[A, E, R]]) -> Effect[A, E, R]:
+def suspend[A, E = Never, R = Never](thunk: Callable[[], Effect[A, E, R]]) -> Effect[A, E, R]:
     """
     Delay the creation of an effect until runtime.
 
@@ -159,9 +163,132 @@ def suspend[A, E = Never, R = None](thunk: Callable[[], Effect[A, E, R]]) -> Eff
     return Suspend(thunk)
 
 
-# ============================================================================
-# Re-exports for backward compatibility
-# ============================================================================
+@overload
+def service[S1](tag: type[S1], /) -> Effect[S1, Never, S1]: ...
+
+
+@overload
+def service[S1, S2](tag1: type[S1], tag2: type[S2], /) -> Effect[tuple[S1, S2], Never, S1 | S2]: ...
+
+
+@overload
+def service[S1, S2, S3](
+    tag1: type[S1], tag2: type[S2], tag3: type[S3], /
+) -> Effect[tuple[S1, S2, S3], Never, S1 | S2 | S3]: ...
+
+
+@overload
+def service[S1, S2, S3, S4](
+    tag1: type[S1], tag2: type[S2], tag3: type[S3], tag4: type[S4], /
+) -> Effect[tuple[S1, S2, S3, S4], Never, S1 | S2 | S3 | S4]: ...
+
+
+@overload
+def service[S1, S2, S3, S4, S5](
+    tag1: type[S1], tag2: type[S2], tag3: type[S3], tag4: type[S4], tag5: type[S5], /
+) -> Effect[tuple[S1, S2, S3, S4, S5], Never, S1 | S2 | S3 | S4 | S5]: ...
+
+
+@overload
+def service[S1, S2, S3, S4, S5, S6](
+    tag1: type[S1],
+    tag2: type[S2],
+    tag3: type[S3],
+    tag4: type[S4],
+    tag5: type[S5],
+    tag6: type[S6],
+    /,
+) -> Effect[tuple[S1, S2, S3, S4, S5, S6], Never, S1 | S2 | S3 | S4 | S5 | S6]: ...
+
+
+@overload
+def service[S1, S2, S3, S4, S5, S6, S7](
+    tag1: type[S1],
+    tag2: type[S2],
+    tag3: type[S3],
+    tag4: type[S4],
+    tag5: type[S5],
+    tag6: type[S6],
+    tag7: type[S7],
+    /,
+) -> Effect[tuple[S1, S2, S3, S4, S5, S6], Never, S1 | S2 | S3 | S4 | S5 | S6 | S7]: ...
+
+
+@overload
+def service[S1, S2, S3, S4, S5, S6, S7, S8](
+    tag1: type[S1],
+    tag2: type[S2],
+    tag3: type[S3],
+    tag4: type[S4],
+    tag5: type[S5],
+    tag6: type[S6],
+    tag7: type[S7],
+    tag8: type[S8],
+    /,
+) -> Effect[tuple[S1, S2, S3, S4, S5, S6], Never, S1 | S2 | S3 | S4 | S5 | S6 | S7 | S8]: ...
+
+
+@overload
+def service[S1, S2, S3, S4, S5, S6, S7, S8, S9](
+    tag1: type[S1],
+    tag2: type[S2],
+    tag3: type[S3],
+    tag4: type[S4],
+    tag5: type[S5],
+    tag6: type[S6],
+    tag7: type[S7],
+    tag8: type[S8],
+    tag9: type[S9],
+    /,
+) -> Effect[tuple[S1, S2, S3, S4, S5, S6], Never, S1 | S2 | S3 | S4 | S5 | S6 | S7 | S8 | S9]: ...
+
+
+@overload
+def service[S1, S2, S3, S4, S5, S6, S7, S8, S9, S10](
+    tag1: type[S1],
+    tag2: type[S2],
+    tag3: type[S3],
+    tag4: type[S4],
+    tag5: type[S5],
+    tag6: type[S6],
+    tag7: type[S7],
+    tag8: type[S8],
+    tag9: type[S9],
+    tag10: type[S10],
+    /,
+) -> Effect[
+    tuple[S1, S2, S3, S4, S5, S6], Never, S1 | S2 | S3 | S4 | S5 | S6 | S7 | S8 | S9 | S10
+]: ...
+
+
+def service(*tags: type) -> Effect:  # type: ignore[type-arg, misc]
+    """
+    Create an effect that looks up one or more services from the context.
+
+    For a single tag, returns the service instance directly.
+    For multiple tags, returns a tuple of instances in the same order.
+    The effect requires all provided tags as context.
+
+    Example:
+        ```python
+        # Single service
+        eff = service(Database)  # Effect[Database, Never, Database]
+
+        # Multiple services
+        eff = service(Database, Logger)  # Effect[tuple[Database, Logger], Never, Database | Logger]
+        ```
+    """
+    if len(tags) == 1:
+        return Service(tags[0])
+    t1, t2, *rest = tags
+    result: Effect = FlatMap(  # type: ignore[type-arg]
+        Service(t1),
+        lambda s1, t=t2: Map(Service(t), lambda s2: (s1, s2)),  # type: ignore[misc]
+    )
+    for tag in rest:
+        result = FlatMap(result, lambda acc, t=tag: Map(Service(t), lambda s: (*acc, s)))  # type: ignore[misc]
+    return result
+
 
 # ============================================================================
 # Interop
@@ -170,7 +297,7 @@ def suspend[A, E = Never, R = None](thunk: Callable[[], Effect[A, E, R]]) -> Eff
 
 def from_option[A, E](
     error: Callable[[], E],
-) -> Callable[[option_module.Option[A]], Effect[A, E, None]]:
+) -> Callable[[option_module.Option[A]], Effect[A, E]]:
     """
     Convert an Option into an Effect.
 
@@ -187,7 +314,7 @@ def from_option[A, E](
         ```
     """
 
-    def _from_option(opt: option_module.Option[A]) -> Effect[A, E, None]:
+    def _from_option(opt: option_module.Option[A]) -> Effect[A, E]:
         match opt:
             case option_module.Some(value):
                 return Succeed(value)
@@ -197,7 +324,7 @@ def from_option[A, E](
     return _from_option
 
 
-def from_either[R, L](e: either_module.Either[R, L]) -> Effect[R, L, None]:
+def from_either[R, L](e: either_module.Either[R, L]) -> Effect[R, L]:
     """
     Convert an Either into an Effect.
 
@@ -218,8 +345,73 @@ def from_either[R, L](e: either_module.Either[R, L]) -> Effect[R, L, None]:
             return Fail(value)
 
 
+class ProvideCallable[R, E2 = Never](Protocol):
+    def __call__[A, E1](self, eff: Effect[A, E1, R]) -> Effect[A, E1 | E2, Never]: ...
+
+
+def provide[R, E2 = Never](  # type: ignore[misc]
+    ctx_or_layer: Context[R] | Layer[R, E2, Never],
+) -> ProvideCallable[R, E2]:
+    """
+    Provide a context or a layer to an effect, satisfying all its requirements.
+
+    Designed to be used with pipe:
+
+    Example (with context):
+        ```python
+        from pyfect import effect, context, pipe
+
+        runnable = pipe(
+            program,
+            effect.provide(context.make((Database, db_impl))),
+        )
+        effect.run_sync(runnable)
+        ```
+
+    Example (with layer):
+        ```python
+        from pyfect import effect, layer, pipe
+
+        db_layer = layer.succeed(Database, db_impl)
+
+        runnable = pipe(
+            program,
+            effect.provide(db_layer),
+        )
+        effect.run_sync(runnable)
+        ```
+    """
+    if isinstance(ctx_or_layer, Layer):
+        layer_eff = ctx_or_layer._effect
+
+        def _apply_layer(eff: Effect[Any, Any, Any]) -> Effect[Any, Any, Any]:
+            return FlatMap(layer_eff, lambda ctx: Provide(eff, ctx))  # type: ignore[return-value]
+
+        return cast(ProvideCallable[R, E2], _apply_layer)
+
+    def _apply_ctx(eff: Effect[Any, Any, Any]) -> Effect[Any, Any, Any]:
+        return Provide(eff, ctx_or_layer)  # type: ignore[arg-type]
+
+    return cast(ProvideCallable[R, E2], _apply_ctx)
+
+
 # Re-export combinators
-from pyfect.combinators import as_, flat_map, ignore, map, map_error, tap, tap_error  # noqa: E402
+from pyfect.combinators import (  # noqa: E402
+    AsCallable,
+    FlatMapCallable,
+    IgnoreCallable,
+    MapCallable,
+    MapErrorCallable,
+    TapCallable,
+    TapErrorCallable,
+    as_,
+    flat_map,
+    ignore,
+    map,
+    map_error,
+    tap,
+    tap_error,
+)
 
 # Re-export runtime
 from pyfect.runtime import (  # noqa: E402
@@ -230,22 +422,33 @@ from pyfect.runtime import (  # noqa: E402
 )
 
 __all__ = [
+    "AsCallable",
     "Async",
     "Effect",
     "Exit",
     "Fail",
     "Failure",
     "FlatMap",
+    "FlatMapCallable",
     "Ignore",
+    "IgnoreCallable",
+    "Layer",
     "Map",
+    "MapCallable",
     "MapError",
+    "MapErrorCallable",
     "Never",
+    "Provide",
+    "ProvideCallable",
+    "Service",
     "Succeed",
     "Success",
     "Suspend",
     "Sync",
     "Tap",
+    "TapCallable",
     "TapError",
+    "TapErrorCallable",
     "TryAsync",
     "TrySync",
     "as_",
@@ -257,10 +460,12 @@ __all__ = [
     "ignore",
     "map",
     "map_error",
+    "provide",
     "run_async",
     "run_async_exit",
     "run_sync",
     "run_sync_exit",
+    "service",
     "succeed",
     "suspend",
     "sync",

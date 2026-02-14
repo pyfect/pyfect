@@ -151,7 +151,7 @@ The fix is a named function with an explicit annotation, giving the type checker
 ```python
 from typing import Never
 
-def do_log(x: int) -> effect.Effect[None, Never, None]:
+def do_log(x: int) -> effect.Effect[None]:
     return effect.async_(lambda: log_value(x))
 
 effect.tap(do_log)(effect.succeed(42))  # ✓
@@ -167,10 +167,10 @@ def parse_int(s: str) -> effect.Effect[int, str]:
     return effect.fail(f"Not a number: {s}")   # A inferred as int from return type
 ```
 
-But when you assign the result to a variable and then chain a combinator that requires a concrete success type, the type checker sees `Effect[Never, E, None]` and will flag the mismatch:
+But when you assign the result to a variable and then chain a combinator that requires a concrete success type, the type checker sees `Effect[Never, E]` and will flag the mismatch:
 
 ```python
-eff = effect.fail(ValueError("oops"))          # Effect[Never, ValueError, None]
+eff = effect.fail(ValueError("oops"))          # Effect[Never, ValueError]
 mapped = effect.map(lambda x: x * 2)(eff)      # error: Operator "*" not supported for types "A@map" and "Literal[2]"
 ```
 
@@ -180,7 +180,7 @@ Fix this with an explicit annotation on the variable **and** a named function wi
 def double(x: int) -> int:
     return x * 2
 
-eff: effect.Effect[int, ValueError, None] = effect.fail(ValueError("oops"))
+eff: effect.Effect[int, ValueError] = effect.fail(ValueError("oops"))
 mapped = effect.map(double)(eff)      # ✓
 ```
 
