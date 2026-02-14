@@ -5,9 +5,8 @@ Context maps service tags (classes) to their implementations and is
 passed to the runtime when providing services to an effect.
 """
 
-from collections.abc import Callable
 from dataclasses import dataclass, field
-from typing import Any, Never, overload
+from typing import Any, Never, Protocol, cast, overload
 
 
 class MissingServiceError(Exception):
@@ -30,6 +29,10 @@ class Context[S]:
     """
 
     _services: dict[type, Any] = field(default_factory=dict)
+
+
+class AddCallable[T](Protocol):
+    def __call__[S](self, ctx: Context[S]) -> Context[S | T]: ...
 
 
 # ============================================================================
@@ -164,7 +167,7 @@ def make(*args: tuple[type, Any]) -> Context[Any]:
 # ============================================================================
 
 
-def add[S, T](tag: type[T], impl: T) -> Callable[[Context[S]], Context[S | T]]:
+def add[T](tag: type[T], impl: T) -> AddCallable[T]:
     """Return a function that adds a service to an existing context.
 
     Designed to be used with pipe:
@@ -181,7 +184,30 @@ def add[S, T](tag: type[T], impl: T) -> Callable[[Context[S]], Context[S | T]]:
         # ctx: Context[Database | Logger]
         ```
     """
-    return lambda ctx: Context({**ctx._services, tag: impl})
+
+    def _apply(ctx: Context[Any]) -> Context[Any]:
+        return Context({**ctx._services, tag: impl})
+
+    return cast(AddCallable[T], _apply)
+
+
+def merge[S1, S2](ctx1: Context[S1], ctx2: Context[S2]) -> Context[S1 | S2]:
+    """Combine two contexts into one, containing all services from both.
+
+    If the same tag exists in both, ctx2's value wins.
+
+    Example:
+        ```python
+        from pyfect import context, pipe
+
+        ctx = context.merge(
+            context.make((Config, config_impl)),
+            context.make((Logger, logger_impl)),
+        )
+        # ctx: Context[Config | Logger]
+        ```
+    """
+    return Context({**ctx1._services, **ctx2._services})
 
 
 def get[S, T](ctx: Context[S], tag: type[T]) -> T:
@@ -193,10 +219,12 @@ def get[S, T](ctx: Context[S], tag: type[T]) -> T:
 
 
 __all__ = [
+    "AddCallable",
     "Context",
     "MissingServiceError",
     "add",
     "empty",
     "get",
     "make",
+    "merge",
 ]

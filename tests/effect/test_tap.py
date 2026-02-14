@@ -24,7 +24,11 @@ def test_tap_sync() -> None:
 
 def test_tap_preserves_value() -> None:
     """Test that tap returns the original value, not the tap result."""
-    eff = effect.tap(lambda x: effect.succeed("ignored"))(effect.succeed(42))
+
+    def on_success(x: int) -> effect.Effect[str]:
+        return effect.succeed("ignored")
+
+    eff = effect.tap(on_success)(effect.succeed(42))
 
     result = effect.run_sync(eff)
     assert result == 42  # noqa: PLR2004
@@ -79,7 +83,11 @@ def test_tap_error_sync() -> None:
 
 def test_tap_error_preserves_error() -> None:
     """Test that tap_error re-raises the original error."""
-    eff = effect.tap_error(lambda e: effect.sync(lambda: None))(effect.fail(ValueError("original")))
+
+    def on_error(e: ValueError) -> effect.Effect[None]:
+        return effect.sync(lambda: None)
+
+    eff = effect.tap_error(on_error)(effect.fail(ValueError("original")))
 
     with pytest.raises(ValueError, match="original"):
         effect.run_sync(eff)
@@ -151,10 +159,16 @@ def test_tap_with_pipe() -> None:
     """Test that curried tap works beautifully with pipe."""
     executed = []
 
+    def log_first(x: int) -> effect.Effect[None]:
+        return effect.sync(lambda: executed.append(f"First: {x}"))
+
+    def log_second(x: int) -> effect.Effect[None]:
+        return effect.sync(lambda: executed.append(f"Second: {x}"))
+
     result_effect = pipe(
         effect.succeed(42),
-        effect.tap(lambda x: effect.sync(lambda: executed.append(f"First: {x}"))),
-        effect.tap(lambda x: effect.sync(lambda: executed.append(f"Second: {x}"))),
+        effect.tap(log_first),
+        effect.tap(log_second),
     )
 
     result = effect.run_sync(result_effect)

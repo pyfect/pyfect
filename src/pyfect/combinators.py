@@ -6,18 +6,55 @@ allowing you to build complex effect pipelines.
 """
 
 from collections.abc import Callable
-from typing import Any, Never, cast
+from typing import Any, Never, Protocol, cast
 
 from pyfect.primitives import Effect, FlatMap, Ignore, Map, MapError, Tap, TapError
+
+# ============================================================================
+# Callable Protocols
+#
+# Each combinator returns a callable that is polymorphic in the input effect's
+# E and R type parameters. Plain Callable[[...], ...] can't express this
+# polymorphism, so we use Protocols with a generic __call__ instead.
+# ============================================================================
+
+
+class AsCallable[B](Protocol):
+    def __call__[A, E, R](self, eff: Effect[A, E, R]) -> Effect[B, E, R]: ...
+
+
+class IgnoreCallable(Protocol):
+    def __call__[A, E, R](self, eff: Effect[A, E, R]) -> Effect[None, Never, R]: ...
+
+
+class FlatMapCallable[A, B, E2 = Never, R2 = Never](Protocol):
+    def __call__[E, R](self, eff: Effect[A, E, R]) -> Effect[B, E | E2, R | R2]: ...
+
+
+class MapCallable[A, B](Protocol):
+    def __call__[E, R](self, eff: Effect[A, E, R]) -> Effect[B, E, R]: ...
+
+
+class MapErrorCallable[E, E2](Protocol):
+    def __call__[A, R](self, eff: Effect[A, E, R]) -> Effect[A, E2, R]: ...
+
+
+class TapCallable[A, E2 = Never, R2 = Never](Protocol):
+    def __call__[E, R](self, eff: Effect[A, E, R]) -> Effect[A, E | E2, R | R2]: ...
+
+
+class TapErrorCallable[E, E2 = Never, R2 = Never](Protocol):
+    def __call__[A, R](self, eff: Effect[A, E, R]) -> Effect[A, E | E2, R | R2]: ...
+
 
 # ============================================================================
 # Combinators
 # ============================================================================
 
 
-def as_[A, B, E, R](
+def as_[B](
     value: B,
-) -> Callable[[Effect[A, E, R]], Effect[B, E, R]]:
+) -> AsCallable[B]:
     """
     Replace the success value with a constant value.
 
@@ -45,10 +82,14 @@ def as_[A, B, E, R](
         )
         ```
     """
-    return lambda effect: Map(effect, lambda _: value)
+
+    def _apply(eff: Effect[Any, Any, Any]) -> Effect[Any, Any, Any]:
+        return cast(Effect[Any, Any, Any], Map(eff, lambda _: value))
+
+    return cast(AsCallable[B], _apply)
 
 
-def ignore[A, E, R]() -> Callable[[Effect[A, E, R]], Effect[None, Never, R]]:
+def ignore() -> IgnoreCallable:
     """
     Ignore both success and failure, always succeeding with None.
 
@@ -84,12 +125,12 @@ def ignore[A, E, R]() -> Callable[[Effect[A, E, R]], Effect[None, Never, R]]:
         )
         ```
     """
-    return Ignore
+    return cast(IgnoreCallable, Ignore)
 
 
-def flat_map[A, B, E, E2, R1, R2](
+def flat_map[A, B, E2 = Never, R2 = Never](
     f: Callable[[A], Effect[B, E2, R2]],
-) -> Callable[[Effect[A, E, R1]], Effect[B, E | E2, R1 | R2]]:
+) -> FlatMapCallable[A, B, E2, R2]:
     """
     Chain effects together (monadic bind).
 
@@ -123,17 +164,16 @@ def flat_map[A, B, E, E2, R1, R2](
         effect.run_sync(result)  # 4
         ```
     """
-    f_cast = cast(Callable[[A], Effect[B, Any, R1 | R2]], f)
 
-    def _apply(eff: Effect[A, E, R1]) -> Effect[B, E | E2, R1 | R2]:
-        return cast(Effect[B, E | E2, R1 | R2], FlatMap(eff, f_cast))
+    def _apply(eff: Effect[A, Any, Any]) -> Effect[B, Any, Any]:
+        return cast(Effect[B, Any, Any], FlatMap(eff, f))
 
-    return _apply
+    return cast(FlatMapCallable[A, B, E2, R2], _apply)
 
 
-def map[A, B, E, R](
+def map[A, B](
     f: Callable[[A], B],
-) -> Callable[[Effect[A, E, R]], Effect[B, E, R]]:
+) -> MapCallable[A, B]:
     """
     Transform the success value of an effect.
 
@@ -158,12 +198,16 @@ def map[A, B, E, R](
         effect.run_sync(mapped)  # 42
         ```
     """
-    return lambda effect: Map(effect, f)
+
+    def _apply(eff: Effect[A, Any, Any]) -> Effect[B, Any, Any]:
+        return cast(Effect[B, Any, Any], Map(eff, f))
+
+    return cast(MapCallable[A, B], _apply)
 
 
-def map_error[A, E, E2, R](
+def map_error[E, E2](
     f: Callable[[E], E2],
-) -> Callable[[Effect[A, E, R]], Effect[A, E2, R]]:
+) -> MapErrorCallable[E, E2]:
     """
     Transform the error type of an effect.
 
@@ -196,12 +240,16 @@ def map_error[A, E, E2, R](
         )
         ```
     """
-    return lambda effect: MapError(effect, f)
+
+    def _apply(eff: Effect[Any, E, Any]) -> Effect[Any, E2, Any]:
+        return cast(Effect[Any, E2, Any], MapError(eff, f))
+
+    return cast(MapErrorCallable[E, E2], _apply)
 
 
-def tap[A, B, E, E2, R1, R2](
+def tap[A, B, E2 = Never, R2 = Never](
     f: Callable[[A], Effect[B, E2, R2]],
-) -> Callable[[Effect[A, E, R1]], Effect[A, E | E2, R1 | R2]]:
+) -> TapCallable[A, E2, R2]:
     """
     Inspect the success value without modifying it.
 
@@ -230,17 +278,16 @@ def tap[A, B, E, E2, R1, R2](
         result = tap_fn(effect.succeed(42))
         ```
     """
-    f_cast = cast(Callable[[A], Effect[Any, Any, R1 | R2]], f)
 
-    def _apply(eff: Effect[A, E, R1]) -> Effect[A, E | E2, R1 | R2]:
-        return cast(Effect[A, E | E2, R1 | R2], Tap(eff, f_cast))
+    def _apply(eff: Effect[A, Any, Any]) -> Effect[A, Any, Any]:
+        return cast(Effect[A, Any, Any], Tap(eff, f))
 
-    return _apply
+    return cast(TapCallable[A, E2, R2], _apply)
 
 
-def tap_error[A, B, E, E2, R1, R2](
+def tap_error[E, B, E2 = Never, R2 = Never](
     f: Callable[[E], Effect[B, E2, R2]],
-) -> Callable[[Effect[A, E, R1]], Effect[A, E | E2, R1 | R2]]:
+) -> TapErrorCallable[E, E2, R2]:
     """
     Inspect the error value without modifying it.
 
@@ -262,15 +309,21 @@ def tap_error[A, B, E, E2, R1, R2](
         )
         ```
     """
-    f_cast = cast(Callable[[E], Effect[Any, Any, R1 | R2]], f)
 
-    def _apply(eff: Effect[A, E, R1]) -> Effect[A, E | E2, R1 | R2]:
-        return cast(Effect[A, E | E2, R1 | R2], TapError(eff, f_cast))
+    def _apply(eff: Effect[Any, E, Any]) -> Effect[Any, Any, Any]:
+        return cast(Effect[Any, Any, Any], TapError(eff, f))
 
-    return _apply
+    return cast(TapErrorCallable[E, E2, R2], _apply)
 
 
 __all__ = [
+    "AsCallable",
+    "FlatMapCallable",
+    "IgnoreCallable",
+    "MapCallable",
+    "MapErrorCallable",
+    "TapCallable",
+    "TapErrorCallable",
     "as_",
     "flat_map",
     "ignore",

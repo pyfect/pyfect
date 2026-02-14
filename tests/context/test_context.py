@@ -106,6 +106,45 @@ def test_missing_service_error_message() -> None:
         context.get(ctx, Database)
 
 
+def test_merge_two_contexts() -> None:
+    """merge() combines two contexts into one."""
+    db = Database("postgres://localhost/test")
+    log = Logger("app")
+
+    ctx = context.merge(
+        context.make((Database, db)),
+        context.make((Logger, log)),
+    )
+
+    assert context.get(ctx, Database) is db
+    assert context.get(ctx, Logger) is log
+
+
+def test_merge_right_wins_on_collision() -> None:
+    """When the same tag exists in both, the right context's value wins."""
+    db1 = Database("postgres://primary")
+    db2 = Database("postgres://replica")
+
+    ctx = context.merge(context.make((Database, db1)), context.make((Database, db2)))
+
+    assert context.get(ctx, Database) is db2
+
+
+def test_merge_is_pure() -> None:
+    """merge() does not mutate either input context."""
+    db = Database("postgres://localhost/test")
+    log = Logger("app")
+    ctx1 = context.make((Database, db))
+    ctx2 = context.make((Logger, log))
+
+    context.merge(ctx1, ctx2)
+
+    with pytest.raises(context.MissingServiceError):
+        context.get(ctx1, Logger)
+    with pytest.raises(context.MissingServiceError):
+        context.get(ctx2, Database)
+
+
 def test_context_is_immutable() -> None:
     """Test that Context is frozen (immutable)."""
     ctx = context.empty()

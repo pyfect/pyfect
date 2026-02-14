@@ -299,7 +299,7 @@ def test_map_error_preserves_context() -> None:
 
     result = pipe(
         effect.fail("error"),
-        effect.map_error(lambda e: CustomError(e)),
+        effect.map_error(CustomError),
     )
 
     with pytest.raises(CustomError, match="error"):

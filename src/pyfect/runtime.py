@@ -21,6 +21,7 @@ from pyfect.primitives import (
     Ignore,
     Map,
     MapError,
+    MemoizedEffect,
     Provide,
     Service,
     Succeed,
@@ -37,7 +38,7 @@ from pyfect.primitives import (
 # ============================================================================
 
 
-def _run_sync[A, E](effect: Effect[A, E, Any], ctx: Context[Any]) -> A:  # noqa: PLR0911, PLR0912
+def _run_sync[A, E](effect: Effect[A, E, Any], ctx: Context[Any], memo: dict[int, Any]) -> A:  # noqa: PLR0911, PLR0912
     match effect:
         case Succeed(value):
             return value
@@ -49,21 +50,21 @@ def _run_sync[A, E](effect: Effect[A, E, Any], ctx: Context[Any]) -> A:  # noqa:
             msg = f"effect failed: {error}"
             raise RuntimeError(msg)
         case Tap(inner_effect, f):
-            result = _run_sync(inner_effect, ctx)
-            _run_sync(f(result), ctx)
+            result = _run_sync(inner_effect, ctx, memo)
+            _run_sync(f(result), ctx, memo)
             return result
         case Map(inner_effect, f):
-            result = _run_sync(inner_effect, ctx)
+            result = _run_sync(inner_effect, ctx, memo)
             return f(result)
         case FlatMap(inner_effect, f):
-            result = _run_sync(inner_effect, ctx)
-            return _run_sync(f(result), ctx)
+            result = _run_sync(inner_effect, ctx, memo)
+            return _run_sync(f(result), ctx, memo)
         case Ignore(inner_effect):
             with contextlib.suppress(BaseException):
-                _run_sync(inner_effect, ctx)
+                _run_sync(inner_effect, ctx, memo)
             return cast(A, None)
         case MapError(inner_effect, f):
-            inner_result = _run_sync_exit(inner_effect, ctx)
+            inner_result = _run_sync_exit(inner_effect, ctx, memo)
             match inner_result:
                 case exit.Success(value):
                     return value
@@ -77,25 +78,33 @@ def _run_sync[A, E](effect: Effect[A, E, Any], ctx: Context[Any]) -> A:  # noqa:
                     raise RuntimeError(msg)
         case TapError(inner_effect, f):
             try:
-                return _run_sync(inner_effect, ctx)
+                return _run_sync(inner_effect, ctx, memo)
             except BaseException as e:
                 with contextlib.suppress(BaseException):
-                    _run_sync(f(cast(Any, e)), ctx)
+                    _run_sync(f(cast(Any, e)), ctx, memo)
                 raise
         case Suspend(thunk):
-            return _run_sync(thunk(), ctx)
+            return _run_sync(thunk(), ctx, memo)
         case TrySync(thunk):
             return thunk()
         case Service(tag):
             return context_module.get(ctx, tag)
         case Provide(inner_effect, new_ctx):
-            return _run_sync(inner_effect, new_ctx)
+            return _run_sync(inner_effect, new_ctx, memo)
+        case MemoizedEffect(inner_effect, layer_id):
+            if layer_id in memo:
+                return memo[layer_id]
+            result = _run_sync(inner_effect, ctx, memo)
+            memo[layer_id] = result
+            return result
         case _:
             msg = f"Cannot run {type(effect).__name__} synchronously"
             raise RuntimeError(msg)
 
 
-def _run_async[A, E](effect: Effect[A, E, Any], ctx: Context[Any]) -> Awaitable[A]:
+def _run_async[A, E](
+    effect: Effect[A, E, Any], ctx: Context[Any], memo: dict[int, Any]
+) -> Awaitable[A]:
     async def execute() -> A:  # noqa: PLR0911, PLR0912
         match effect:
             case Succeed(value):
@@ -110,21 +119,21 @@ def _run_async[A, E](effect: Effect[A, E, Any], ctx: Context[Any]) -> Awaitable[
                 msg = f"effect failed: {error}"
                 raise RuntimeError(msg)
             case Tap(inner_effect, f):
-                result = await _run_async(inner_effect, ctx)
-                await _run_async(f(result), ctx)
+                result = await _run_async(inner_effect, ctx, memo)
+                await _run_async(f(result), ctx, memo)
                 return result
             case Map(inner_effect, f):
-                result = await _run_async(inner_effect, ctx)
+                result = await _run_async(inner_effect, ctx, memo)
                 return f(result)
             case FlatMap(inner_effect, f):
-                result = await _run_async(inner_effect, ctx)
-                return await _run_async(f(result), ctx)
+                result = await _run_async(inner_effect, ctx, memo)
+                return await _run_async(f(result), ctx, memo)
             case Ignore(inner_effect):
                 with contextlib.suppress(BaseException):
-                    await _run_async(inner_effect, ctx)
+                    await _run_async(inner_effect, ctx, memo)
                 return cast(A, None)
             case MapError(inner_effect, f):
-                inner_result = await _run_async_exit(inner_effect, ctx)
+                inner_result = await _run_async_exit(inner_effect, ctx, memo)
                 match inner_result:
                     case exit.Success(value):
                         return value
@@ -138,13 +147,13 @@ def _run_async[A, E](effect: Effect[A, E, Any], ctx: Context[Any]) -> Awaitable[
                         raise RuntimeError(msg)
             case TapError(inner_effect, f):
                 try:
-                    return await _run_async(inner_effect, ctx)
+                    return await _run_async(inner_effect, ctx, memo)
                 except BaseException as e:
                     with contextlib.suppress(BaseException):
-                        await _run_async(f(cast(Any, e)), ctx)
+                        await _run_async(f(cast(Any, e)), ctx, memo)
                     raise
             case Suspend(thunk):
-                return await _run_async(thunk(), ctx)
+                return await _run_async(thunk(), ctx, memo)
             case TrySync(thunk):
                 return thunk()
             case TryAsync(thunk):
@@ -152,12 +161,20 @@ def _run_async[A, E](effect: Effect[A, E, Any], ctx: Context[Any]) -> Awaitable[
             case Service(tag):
                 return context_module.get(ctx, tag)
             case Provide(inner_effect, new_ctx):
-                return await _run_async(inner_effect, new_ctx)
+                return await _run_async(inner_effect, new_ctx, memo)
+            case MemoizedEffect(inner_effect, layer_id):
+                if layer_id in memo:
+                    return memo[layer_id]
+                result = await _run_async(inner_effect, ctx, memo)
+                memo[layer_id] = result
+                return result
 
     return execute()
 
 
-def _run_sync_exit[A, E](effect: Effect[A, E, Any], ctx: Context[Any]) -> Exit[A, E]:  # noqa: PLR0911, PLR0912
+def _run_sync_exit[A, E](  # noqa: PLR0911, PLR0912
+    effect: Effect[A, E, Any], ctx: Context[Any], memo: dict[int, Any]
+) -> Exit[A, E]:
     match effect:
         case Succeed(value):
             return exit.succeed(value)
@@ -166,48 +183,48 @@ def _run_sync_exit[A, E](effect: Effect[A, E, Any], ctx: Context[Any]) -> Exit[A
         case Fail(error):
             return exit.fail(error)
         case Tap(inner_effect, f):
-            inner_result = _run_sync_exit(inner_effect, ctx)
+            inner_result = _run_sync_exit(inner_effect, ctx, memo)
             match inner_result:
                 case exit.Success(value):
-                    _run_sync(f(value), ctx)
+                    _run_sync(f(value), ctx, memo)
                     return exit.succeed(value)
                 case exit.Failure(error):
                     return exit.fail(error)
         case Map(inner_effect, f):
-            inner_result = _run_sync_exit(inner_effect, ctx)
+            inner_result = _run_sync_exit(inner_effect, ctx, memo)
             match inner_result:
                 case exit.Success(value):
                     return exit.succeed(f(value))
                 case exit.Failure(error):
                     return exit.fail(error)
         case FlatMap(inner_effect, f):
-            inner_result = _run_sync_exit(inner_effect, ctx)
+            inner_result = _run_sync_exit(inner_effect, ctx, memo)
             match inner_result:
                 case exit.Success(value):
-                    return _run_sync_exit(f(value), ctx)
+                    return _run_sync_exit(f(value), ctx, memo)
                 case exit.Failure(error):
                     return exit.fail(error)
         case Ignore(inner_effect):
-            _run_sync_exit(inner_effect, ctx)
+            _run_sync_exit(inner_effect, ctx, memo)
             return exit.succeed(cast(A, None))
         case MapError(inner_effect, f):
-            inner_result = _run_sync_exit(inner_effect, ctx)
+            inner_result = _run_sync_exit(inner_effect, ctx, memo)
             match inner_result:
                 case exit.Success(value):
                     return exit.succeed(value)
                 case exit.Failure(error):
                     return exit.fail(f(cast(Any, error)))
         case TapError(inner_effect, f):
-            inner_result = _run_sync_exit(inner_effect, ctx)
+            inner_result = _run_sync_exit(inner_effect, ctx, memo)
             match inner_result:
                 case exit.Success(value):
                     return exit.succeed(value)
                 case exit.Failure(error):
                     with contextlib.suppress(BaseException):
-                        _run_sync(f(cast(Any, error)), ctx)
+                        _run_sync(f(cast(Any, error)), ctx, memo)
                     return exit.fail(error)
         case Suspend(thunk):
-            return _run_sync_exit(thunk(), ctx)
+            return _run_sync_exit(thunk(), ctx, memo)
         case TrySync(thunk):
             try:
                 return exit.succeed(thunk())
@@ -216,14 +233,26 @@ def _run_sync_exit[A, E](effect: Effect[A, E, Any], ctx: Context[Any]) -> Exit[A
         case Service(tag):
             return exit.succeed(context_module.get(ctx, tag))
         case Provide(inner_effect, new_ctx):
-            return _run_sync_exit(inner_effect, new_ctx)
+            return _run_sync_exit(inner_effect, new_ctx, memo)
+        case MemoizedEffect(inner_effect, layer_id):
+            if layer_id in memo:
+                return exit.succeed(memo[layer_id])
+            inner_result = _run_sync_exit(inner_effect, ctx, memo)
+            match inner_result:
+                case exit.Success(value):
+                    memo[layer_id] = value
+                    return exit.succeed(value)
+                case exit.Failure(error):
+                    return exit.fail(error)
         case _:
             msg = f"Cannot run {type(effect).__name__} synchronously"
             raise RuntimeError(msg)
 
 
-def _run_async_exit[A, E](effect: Effect[A, E, Any], ctx: Context[Any]) -> Awaitable[Exit[A, E]]:
-    async def execute() -> Exit[A, E]:  # noqa: PLR0911, PLR0912
+def _run_async_exit[A, E](  # noqa: PLR0915
+    effect: Effect[A, E, Any], ctx: Context[Any], memo: dict[int, Any]
+) -> Awaitable[Exit[A, E]]:
+    async def execute() -> Exit[A, E]:  # noqa: PLR0911, PLR0912, PLR0915
         match effect:
             case Succeed(value):
                 return exit.succeed(value)
@@ -234,48 +263,48 @@ def _run_async_exit[A, E](effect: Effect[A, E, Any], ctx: Context[Any]) -> Await
             case Fail(error):
                 return exit.fail(error)
             case Tap(inner_effect, f):
-                inner_result = await _run_async_exit(inner_effect, ctx)
+                inner_result = await _run_async_exit(inner_effect, ctx, memo)
                 match inner_result:
                     case exit.Success(value):
-                        await _run_async(f(value), ctx)
+                        await _run_async(f(value), ctx, memo)
                         return exit.succeed(value)
                     case exit.Failure(error):
                         return exit.fail(error)
             case Map(inner_effect, f):
-                inner_result = await _run_async_exit(inner_effect, ctx)
+                inner_result = await _run_async_exit(inner_effect, ctx, memo)
                 match inner_result:
                     case exit.Success(value):
                         return exit.succeed(f(value))
                     case exit.Failure(error):
                         return exit.fail(error)
             case FlatMap(inner_effect, f):
-                inner_result = await _run_async_exit(inner_effect, ctx)
+                inner_result = await _run_async_exit(inner_effect, ctx, memo)
                 match inner_result:
                     case exit.Success(value):
-                        return await _run_async_exit(f(value), ctx)
+                        return await _run_async_exit(f(value), ctx, memo)
                     case exit.Failure(error):
                         return exit.fail(error)
             case Ignore(inner_effect):
-                await _run_async_exit(inner_effect, ctx)
+                await _run_async_exit(inner_effect, ctx, memo)
                 return exit.succeed(cast(A, None))
             case MapError(inner_effect, f):
-                inner_result = await _run_async_exit(inner_effect, ctx)
+                inner_result = await _run_async_exit(inner_effect, ctx, memo)
                 match inner_result:
                     case exit.Success(value):
                         return exit.succeed(value)
                     case exit.Failure(error):
                         return exit.fail(f(cast(Any, error)))
             case TapError(inner_effect, f):
-                inner_result = await _run_async_exit(inner_effect, ctx)
+                inner_result = await _run_async_exit(inner_effect, ctx, memo)
                 match inner_result:
                     case exit.Success(value):
                         return exit.succeed(value)
                     case exit.Failure(error):
                         with contextlib.suppress(BaseException):
-                            await _run_async(f(cast(Any, error)), ctx)
+                            await _run_async(f(cast(Any, error)), ctx, memo)
                         return exit.fail(error)
             case Suspend(thunk):
-                return await _run_async_exit(thunk(), ctx)
+                return await _run_async_exit(thunk(), ctx, memo)
             case TrySync(thunk):
                 try:
                     return exit.succeed(thunk())
@@ -289,7 +318,17 @@ def _run_async_exit[A, E](effect: Effect[A, E, Any], ctx: Context[Any]) -> Await
             case Service(tag):
                 return exit.succeed(context_module.get(ctx, tag))
             case Provide(inner_effect, new_ctx):
-                return await _run_async_exit(inner_effect, new_ctx)
+                return await _run_async_exit(inner_effect, new_ctx, memo)
+            case MemoizedEffect(inner_effect, layer_id):
+                if layer_id in memo:
+                    return exit.succeed(memo[layer_id])
+                inner_result = await _run_async_exit(inner_effect, ctx, memo)
+                match inner_result:
+                    case exit.Success(value):
+                        memo[layer_id] = value
+                        return exit.succeed(value)
+                    case exit.Failure(error):
+                        return exit.fail(error)
 
     return execute()
 
@@ -316,7 +355,7 @@ def run_sync[A, E](effect: Effect[A, E, Never]) -> A:
         RuntimeError: If the effect fails with a non-exception error value, or contains async
         primitives
     """
-    return _run_sync(effect, context_module.empty())
+    return _run_sync(effect, context_module.empty(), {})
 
 
 def run_async[A, E](effect: Effect[A, E, Never]) -> Awaitable[A]:
@@ -336,7 +375,7 @@ def run_async[A, E](effect: Effect[A, E, Never]) -> Awaitable[A]:
         BaseException: If the effect fails with an exception error value (re-raised as-is)
         RuntimeError: If the effect fails with a non-exception error value
     """
-    return _run_async(effect, context_module.empty())
+    return _run_async(effect, context_module.empty(), {})
 
 
 def run_sync_exit[A, E](effect: Effect[A, E, Never]) -> Exit[A, E]:
@@ -359,7 +398,7 @@ def run_sync_exit[A, E](effect: Effect[A, E, Never]) -> Exit[A, E]:
     Raises:
         RuntimeError: If the effect cannot be run synchronously
     """
-    return _run_sync_exit(effect, context_module.empty())
+    return _run_sync_exit(effect, context_module.empty(), {})
 
 
 def run_async_exit[A, E](effect: Effect[A, E, Never]) -> Awaitable[Exit[A, E]]:
@@ -379,7 +418,7 @@ def run_async_exit[A, E](effect: Effect[A, E, Never]) -> Awaitable[Exit[A, E]]:
                 print(f"Error: {error}")
         ```
     """
-    return _run_async_exit(effect, context_module.empty())
+    return _run_async_exit(effect, context_module.empty(), {})
 
 
 __all__ = [

@@ -6,7 +6,7 @@ that operate on them. Import as `Effect` for the Effect TS-like API.
 """
 
 from collections.abc import Awaitable, Callable
-from typing import Never, overload
+from typing import Any, Never, Protocol, cast, overload
 
 import pyfect.either as either_module
 import pyfect.option as option_module
@@ -345,19 +345,13 @@ def from_either[R, L](e: either_module.Either[R, L]) -> Effect[R, L]:
             return Fail(value)
 
 
-@overload
-def provide[A, E, R](ctx: Context[R]) -> Callable[[Effect[A, E, R]], Effect[A, E, Never]]: ...
+class ProvideCallable[R, E2 = Never](Protocol):
+    def __call__[A, E1](self, eff: Effect[A, E1, R]) -> Effect[A, E1 | E2, Never]: ...
 
 
-@overload
-def provide[A, E1, E2, R](
-    layer: Layer[R, E2, Never],
-) -> Callable[[Effect[A, E1, R]], Effect[A, E1 | E2, Never]]: ...
-
-
-def provide[A, E1, E2, R](  # type: ignore[misc]
+def provide[R, E2 = Never](  # type: ignore[misc]
     ctx_or_layer: Context[R] | Layer[R, E2, Never],
-) -> Callable[[Effect[A, E1, R]], Effect[A, E1 | E2, Never]]:
+) -> ProvideCallable[R, E2]:
     """
     Provide a context or a layer to an effect, satisfying all its requirements.
 
@@ -389,12 +383,35 @@ def provide[A, E1, E2, R](  # type: ignore[misc]
     """
     if isinstance(ctx_or_layer, Layer):
         layer_eff = ctx_or_layer._effect
-        return lambda eff: FlatMap(layer_eff, lambda ctx: Provide(eff, ctx))  # type: ignore[return-value]
-    return lambda eff: Provide(eff, ctx_or_layer)  # type: ignore[return-value, arg-type]
+
+        def _apply_layer(eff: Effect[Any, Any, Any]) -> Effect[Any, Any, Any]:
+            return FlatMap(layer_eff, lambda ctx: Provide(eff, ctx))  # type: ignore[return-value]
+
+        return cast(ProvideCallable[R, E2], _apply_layer)
+
+    def _apply_ctx(eff: Effect[Any, Any, Any]) -> Effect[Any, Any, Any]:
+        return Provide(eff, ctx_or_layer)  # type: ignore[arg-type]
+
+    return cast(ProvideCallable[R, E2], _apply_ctx)
 
 
 # Re-export combinators
-from pyfect.combinators import as_, flat_map, ignore, map, map_error, tap, tap_error  # noqa: E402
+from pyfect.combinators import (  # noqa: E402
+    AsCallable,
+    FlatMapCallable,
+    IgnoreCallable,
+    MapCallable,
+    MapErrorCallable,
+    TapCallable,
+    TapErrorCallable,
+    as_,
+    flat_map,
+    ignore,
+    map,
+    map_error,
+    tap,
+    tap_error,
+)
 
 # Re-export runtime
 from pyfect.runtime import (  # noqa: E402
@@ -405,25 +422,33 @@ from pyfect.runtime import (  # noqa: E402
 )
 
 __all__ = [
+    "AsCallable",
     "Async",
     "Effect",
     "Exit",
     "Fail",
     "Failure",
     "FlatMap",
+    "FlatMapCallable",
     "Ignore",
+    "IgnoreCallable",
     "Layer",
     "Map",
+    "MapCallable",
     "MapError",
+    "MapErrorCallable",
     "Never",
     "Provide",
+    "ProvideCallable",
     "Service",
     "Succeed",
     "Success",
     "Suspend",
     "Sync",
     "Tap",
+    "TapCallable",
     "TapError",
+    "TapErrorCallable",
     "TryAsync",
     "TrySync",
     "as_",
