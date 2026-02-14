@@ -16,6 +16,7 @@ from pyfect.context import Context
 
 # Re-export Exit types from exit module for backward compatibility
 from pyfect.exit import Exit, Failure, Success
+from pyfect.layer import Layer
 from pyfect.primitives import (
     Async,
     Effect,
@@ -344,13 +345,25 @@ def from_either[R, L](e: either_module.Either[R, L]) -> Effect[R, L]:
             return Fail(value)
 
 
-def provide[A, E, R](context: Context[R]) -> Callable[[Effect[A, E, R]], Effect[A, E, Never]]:
+@overload
+def provide[A, E, R](ctx: Context[R]) -> Callable[[Effect[A, E, R]], Effect[A, E, Never]]: ...
+
+
+@overload
+def provide[A, E1, E2, R](
+    layer: Layer[R, E2, Never],
+) -> Callable[[Effect[A, E1, R]], Effect[A, E1 | E2, Never]]: ...
+
+
+def provide[A, E1, E2, R](  # type: ignore[misc]
+    ctx_or_layer: Context[R] | Layer[R, E2, Never],
+) -> Callable[[Effect[A, E1, R]], Effect[A, E1 | E2, Never]]:
     """
-    Provide a context to an effect, satisfying all its requirements.
+    Provide a context or a layer to an effect, satisfying all its requirements.
 
     Designed to be used with pipe:
 
-    Example:
+    Example (with context):
         ```python
         from pyfect import effect, context, pipe
 
@@ -358,12 +371,26 @@ def provide[A, E, R](context: Context[R]) -> Callable[[Effect[A, E, R]], Effect[
             program,
             effect.provide(context.make((Database, db_impl))),
         )
-        # runnable: Effect[str, NotFoundError, Never]
+        effect.run_sync(runnable)
+        ```
 
+    Example (with layer):
+        ```python
+        from pyfect import effect, layer, pipe
+
+        db_layer = layer.succeed(Database, db_impl)
+
+        runnable = pipe(
+            program,
+            effect.provide(db_layer),
+        )
         effect.run_sync(runnable)
         ```
     """
-    return lambda eff: Provide(eff, context)
+    if isinstance(ctx_or_layer, Layer):
+        layer_eff = ctx_or_layer._effect
+        return lambda eff: FlatMap(layer_eff, lambda ctx: Provide(eff, ctx))  # type: ignore[return-value]
+    return lambda eff: Provide(eff, ctx_or_layer)  # type: ignore[return-value, arg-type]
 
 
 # Re-export combinators
@@ -385,6 +412,7 @@ __all__ = [
     "Failure",
     "FlatMap",
     "Ignore",
+    "Layer",
     "Map",
     "MapError",
     "Never",
