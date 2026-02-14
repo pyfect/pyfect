@@ -58,8 +58,9 @@ def test_map_both_transforms_right() -> None:
 
 
 def test_map_both_transforms_left() -> None:
-    e: either.Either[int, str] = either.left("oops")
-    result = pipe(e, either.map_both(on_right=lambda n: n + 1, on_left=lambda s: s + "!"))
+    result = pipe(
+        either.left("oops"), either.map_both(on_right=lambda n: n + 1, on_left=lambda s: s + "!")
+    )
     assert result == Left("oops!")
 
 

@@ -56,7 +56,7 @@ from pyfect.primitives import (
 # ============================================================================
 
 
-def succeed[A, E = Never](value: A) -> Effect[A, E]:
+def succeed[A](value: A) -> Effect[A]:
     """
     Create an effect that succeeds with a value.
 
@@ -358,6 +358,9 @@ def from_either[R, L](e: either_module.Either[R, L]) -> Effect[R, L]:
             return Succeed(value)
         case either_module.Left(value):
             return Fail(value)
+        case _:  # pragma: no cover
+            msg = f"Unexpected Either variant: {type(e).__name__}"
+            raise AssertionError(msg)
 
 
 class DelayCallable(Protocol):

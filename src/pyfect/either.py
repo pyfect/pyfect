@@ -9,29 +9,36 @@ runtime required.
 
 from collections.abc import Callable
 from dataclasses import dataclass
-from typing import Never, TypeIs, cast, overload
+from typing import Any, Never, TypeIs, cast, overload
 
 # ============================================================================
 # Either Types
 # ============================================================================
 
 
+class Either[R, L = Never]:
+    """Base class for Either variants.
+
+    Using a base class (rather than a union type alias) allows type checkers
+    to extract TypeVars R, L nominally from Either[R, L] instances,
+    which is required for correct TypeVar solving in multi-step pipe chains.
+    """
+
+    __slots__ = ()
+
+
 @dataclass(frozen=True)
-class Right[R]:
+class Right[R, L = Never](Either[R, L]):
     """An Either containing a Right (success) value."""
 
     value: R
 
 
 @dataclass(frozen=True)
-class Left[L]:
+class Left[R = Never, L = Never](Either[R, L]):
     """An Either containing a Left (failure) value."""
 
     value: L
-
-
-# Type alias for the Either union
-type Either[R, L = Never] = Right[R] | Left[L]
 
 
 # ============================================================================
@@ -39,7 +46,7 @@ type Either[R, L = Never] = Right[R] | Left[L]
 # ============================================================================
 
 
-def right[R, L = Never](value: R) -> Either[R, L]:
+def right[R](value: R) -> Either[R, Never]:
     """
     Create an Either with a Right value.
 
@@ -54,7 +61,7 @@ def right[R, L = Never](value: R) -> Either[R, L]:
     return Right(value)
 
 
-def left[L, R = Never](value: L) -> Either[R, L]:
+def left[L](value: L) -> Either[Never, L]:
     """
     Create an Either with a Left value.
 
@@ -74,7 +81,7 @@ def left[L, R = Never](value: L) -> Either[R, L]:
 # ============================================================================
 
 
-def is_right[R, L](either: Either[R, L]) -> TypeIs[Right[R]]:
+def is_right[R, L](either: Either[R, L]) -> TypeIs[Right[R, L]]:
     """
     Return True if the Either is a Right value.
 
@@ -87,7 +94,7 @@ def is_right[R, L](either: Either[R, L]) -> TypeIs[Right[R]]:
     return isinstance(either, Right)
 
 
-def is_left[R, L](either: Either[R, L]) -> TypeIs[Left[L]]:
+def is_left[R, L](either: Either[R, L]) -> TypeIs[Left[R, L]]:
     """
     Return True if the Either is a Left value.
 
@@ -123,7 +130,10 @@ def map[R, R2, L](f: Callable[[R], R2]) -> Callable[[Either[R, L]], Either[R2, L
             case Right(value):
                 return Right(f(value))
             case Left():
-                return e
+                return cast(Either[R2, L], e)
+            case _:  # pragma: no cover
+                msg = f"Unexpected Either variant: {type(e).__name__}"
+                raise AssertionError(msg)
 
     return _map
 
@@ -146,7 +156,10 @@ def map_left[R, L, L2](f: Callable[[L], L2]) -> Callable[[Either[R, L]], Either[
             case Left(value):
                 return Left(f(value))
             case Right():
-                return e
+                return cast(Either[R, L2], e)
+            case _:  # pragma: no cover
+                msg = f"Unexpected Either variant: {type(e).__name__}"
+                raise AssertionError(msg)
 
     return _map_left
 
@@ -175,6 +188,9 @@ def map_both[R, R2, L, L2](
                 return Right(on_right(value))
             case Left(value):
                 return Left(on_left(value))
+            case _:  # pragma: no cover
+                msg = f"Unexpected Either variant: {type(e).__name__}"
+                raise AssertionError(msg)
 
     return _map_both
 
@@ -211,6 +227,9 @@ def flat_map[R, R2, L1, L2](
                 return cast(Either[R2, L1 | L2], f(value))
             case Left():
                 return cast(Either[R2, L1 | L2], e)
+            case _:  # pragma: no cover
+                msg = f"Unexpected Either variant: {type(e).__name__}"
+                raise AssertionError(msg)
 
     return _flat_map
 
@@ -218,6 +237,38 @@ def flat_map[R, R2, L1, L2](
 # ============================================================================
 # Combining
 # ============================================================================
+
+
+@overload
+def zip_with[R1, R2, R3](  # type: ignore[overload-overlap]
+    e1: Either[R1, Never],
+    e2: Either[R2, Never],
+    f: Callable[[R1, R2], R3],
+) -> Either[R3, Never]: ...
+
+
+@overload
+def zip_with[R2, L1, L2](
+    e1: Either[Never, L1],
+    e2: Either[R2, L2],
+    f: Callable[..., Any],
+) -> Either[Never, L1 | L2]: ...
+
+
+@overload
+def zip_with[R1, L1, L2](
+    e1: Either[R1, L1],
+    e2: Either[Never, L2],
+    f: Callable[..., Any],
+) -> Either[Never, L1 | L2]: ...
+
+
+@overload
+def zip_with[R1, R2, R3, L1, L2](
+    e1: Either[R1, L1],
+    e2: Either[R2, L2],
+    f: Callable[[R1, R2], R3],
+) -> Either[R3, L1 | L2]: ...
 
 
 def zip_with[R1, R2, R3, L1, L2](
@@ -248,8 +299,14 @@ def zip_with[R1, R2, R3, L1, L2](
                     return Right(f(a, b))
                 case Left():
                     return cast(Either[R3, L1 | L2], e2)
+                case _:  # pragma: no cover
+                    msg = f"Unexpected Either variant: {type(e2).__name__}"
+                    raise AssertionError(msg)
         case Left():
             return cast(Either[R3, L1 | L2], e1)
+        case _:  # pragma: no cover
+            msg = f"Unexpected Either variant: {type(e1).__name__}"
+            raise AssertionError(msg)
 
 
 @overload
@@ -297,6 +354,9 @@ def all[R, L, K](
                     result_dict[key] = value  # type: ignore[index]
                 case Left():
                     return cast(Either[dict[K, R], L], e)
+                case _:  # pragma: no cover
+                    msg = f"Unexpected Either variant: {type(e).__name__}"
+                    raise AssertionError(msg)
         return Right(result_dict)
 
     result_list: list[R] = []
@@ -306,6 +366,9 @@ def all[R, L, K](
                 result_list.append(value)
             case Left():
                 return cast(Either[list[R], L], e)
+            case _:  # pragma: no cover
+                msg = f"Unexpected Either variant: {type(e).__name__}"
+                raise AssertionError(msg)
     return Right(result_list)
 
 

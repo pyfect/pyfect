@@ -1,6 +1,7 @@
 """Tests for suspend constructor."""
 
 import asyncio
+from typing import Never
 
 import pytest
 
@@ -84,7 +85,7 @@ def test_suspend_with_failure() -> None:
     """Test that suspend works with failing effects."""
     counter = 0
 
-    def make_effect() -> effect.Effect:
+    def make_effect() -> effect.Effect[Never, ValueError]:
         nonlocal counter
         counter += 1
         return effect.fail(ValueError(f"error {counter}"))

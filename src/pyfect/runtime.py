@@ -64,7 +64,7 @@ def _run_sync[A, E](effect: Effect[A, E, Any], ctx: Context[Any], memo: dict[int
             result = _run_sync(inner_effect, ctx, memo)
             return _run_sync(f(result), ctx, memo)
         case Ignore(inner_effect):
-            with contextlib.suppress(BaseException):
+            with contextlib.suppress(BaseException):  # type: ignore[unreachable]
                 _run_sync(inner_effect, ctx, memo)
             return cast(A, None)
         case MapError(inner_effect, f):
@@ -102,7 +102,7 @@ def _run_sync[A, E](effect: Effect[A, E, Any], ctx: Context[Any], memo: dict[int
             memo[layer_id] = result
             return result
         case Sleep(duration):
-            time.sleep(duration.total_seconds())
+            time.sleep(duration.total_seconds())  # type: ignore[unreachable]
             return cast(A, None)
         case ZipPar(effects):
             return cast(A, tuple(_run_sync(e, ctx, memo) for e in effects))
@@ -114,7 +114,7 @@ def _run_sync[A, E](effect: Effect[A, E, Any], ctx: Context[Any], memo: dict[int
 def _run_async[A, E](  # noqa: PLR0915
     effect: Effect[A, E, Any], ctx: Context[Any], memo: dict[int, Any]
 ) -> Awaitable[A]:
-    async def execute() -> A:  # noqa: PLR0911, PLR0912
+    async def execute() -> A:  # noqa: PLR0911, PLR0912, PLR0915
         match effect:
             case Succeed(value):
                 return value
@@ -138,7 +138,7 @@ def _run_async[A, E](  # noqa: PLR0915
                 result = await _run_async(inner_effect, ctx, memo)
                 return await _run_async(f(result), ctx, memo)
             case Ignore(inner_effect):
-                with contextlib.suppress(BaseException):
+                with contextlib.suppress(BaseException):  # type: ignore[unreachable]
                     await _run_async(inner_effect, ctx, memo)
                 return cast(A, None)
             case MapError(inner_effect, f):
@@ -178,11 +178,14 @@ def _run_async[A, E](  # noqa: PLR0915
                 memo[layer_id] = result
                 return result
             case Sleep(duration):
-                await asyncio.sleep(duration.total_seconds())
+                await asyncio.sleep(duration.total_seconds())  # type: ignore[unreachable]
                 return cast(A, None)
             case ZipPar(effects):
                 results = await asyncio.gather(*(_run_async(e, ctx, memo) for e in effects))
                 return cast(A, tuple(results))
+            case _:  # pragma: no cover
+                msg = f"Unknown effect type: {type(effect).__name__}"
+                raise RuntimeError(msg)
 
     return execute()
 
@@ -220,7 +223,7 @@ def _run_sync_exit[A, E](  # noqa: PLR0911, PLR0912, PLR0915
                 case exit.Failure(error):
                     return exit.fail(error)
         case Ignore(inner_effect):
-            _run_sync_exit(inner_effect, ctx, memo)
+            _run_sync_exit(inner_effect, ctx, memo)  # type: ignore[unreachable]
             return exit.succeed(cast(A, None))
         case MapError(inner_effect, f):
             inner_result = _run_sync_exit(inner_effect, ctx, memo)
@@ -260,7 +263,7 @@ def _run_sync_exit[A, E](  # noqa: PLR0911, PLR0912, PLR0915
                 case exit.Failure(error):
                     return exit.fail(error)
         case Sleep(duration):
-            time.sleep(duration.total_seconds())
+            time.sleep(duration.total_seconds())  # type: ignore[unreachable]
             return exit.succeed(cast(A, None))
         case ZipPar(effects):
             results = []
@@ -313,7 +316,7 @@ def _run_async_exit[A, E](  # noqa: PLR0915
                     case exit.Failure(error):
                         return exit.fail(error)
             case Ignore(inner_effect):
-                await _run_async_exit(inner_effect, ctx, memo)
+                await _run_async_exit(inner_effect, ctx, memo)  # type: ignore[unreachable]
                 return exit.succeed(cast(A, None))
             case MapError(inner_effect, f):
                 inner_result = await _run_async_exit(inner_effect, ctx, memo)
@@ -358,7 +361,7 @@ def _run_async_exit[A, E](  # noqa: PLR0915
                     case exit.Failure(error):
                         return exit.fail(error)
             case Sleep(duration):
-                await asyncio.sleep(duration.total_seconds())
+                await asyncio.sleep(duration.total_seconds())  # type: ignore[unreachable]
                 return exit.succeed(cast(A, None))
             case ZipPar(effects):
                 try:
@@ -366,6 +369,9 @@ def _run_async_exit[A, E](  # noqa: PLR0915
                     return exit.succeed(cast(A, tuple(results)))
                 except BaseException as e:
                     return exit.fail(cast(E, e))
+            case _:  # pragma: no cover
+                msg = f"Unknown effect type: {type(effect).__name__}"
+                raise RuntimeError(msg)
 
     return execute()
 

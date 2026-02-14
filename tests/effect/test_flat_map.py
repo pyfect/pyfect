@@ -164,12 +164,9 @@ def test_flat_map_avoids_nesting() -> None:
     # Without flat_map, you'd get Effect[Effect[int]]
     # With flat_map, you get Effect[int]
 
-    def get_nested(x: int) -> effect.Effect[int, str]:
-        return effect.succeed(x * 2)
-
     result = pipe(
         effect.succeed(10),
-        effect.flat_map(get_nested),
+        effect.flat_map(lambda x: effect.succeed(x * 2)),
     )
     # Result is Effect[int], not Effect[Effect[int]]  # noqa: ERA001
     assert effect.run_sync(result) == 20  # noqa: PLR2004
