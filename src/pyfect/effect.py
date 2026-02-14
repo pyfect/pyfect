@@ -19,11 +19,13 @@ from pyfect.control import (
     WhenCallable,
     WhenEffectCallable,
     if_,
+    loop,
     unless,
     unless_effect,
     when,
     when_effect,
     zip,
+    zip_with,
 )
 
 # Re-export Exit types from exit module for backward compatibility
@@ -512,6 +514,7 @@ __all__ = [
     "from_option",
     "if_",
     "ignore",
+    "loop",
     "map",
     "map_error",
     "provide",
@@ -532,4 +535,5 @@ __all__ = [
     "when",
     "when_effect",
     "zip",
+    "zip_with",
 ]

@@ -20,7 +20,7 @@ from pyfect.primitives import Effect, FlatMap, Ignore, Map, MapError, Tap, TapEr
 
 
 class AsCallable[B](Protocol):
-    def __call__[A, E, R](self, eff: Effect[A, E, R]) -> Effect[B, E, R]: ...
+    def __call__[E, R](self, eff: Effect[Any, E, R]) -> Effect[B, E, R]: ...
 
 
 class IgnoreCallable(Protocol):

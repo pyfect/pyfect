@@ -30,16 +30,10 @@ def test_flat_map_multiple_chains() -> None:
 def test_flat_map_dependent_computation() -> None:
     """Test flat_map where each step depends on previous result."""
 
-    def fetch_user(user_id: int) -> effect.Effect[str, str]:
-        return effect.succeed(f"User{user_id}")
-
-    def fetch_email(username: str) -> effect.Effect[str, str]:
-        return effect.succeed(f"{username}@example.com")
-
     result = pipe(
         effect.succeed(42),
-        effect.flat_map(fetch_user),
-        effect.flat_map(fetch_email),
+        effect.flat_map(lambda id: effect.succeed(f"User{id}")),
+        effect.flat_map(lambda username: effect.succeed(f"{username}@example.com")),
     )
     assert effect.run_sync(result) == "User42@example.com"
 
@@ -48,7 +42,7 @@ def test_flat_map_with_failure() -> None:
     """Test that flat_map propagates failures."""
     result = pipe(
         effect.succeed(10),
-        effect.flat_map(lambda x: effect.fail(ValueError("failed"))),
+        effect.flat_map(lambda _: effect.fail(ValueError("failed"))),
         effect.flat_map(lambda x: effect.succeed(x * 2)),  # Should not execute
     )
 
@@ -301,22 +295,15 @@ def test_flat_map_that_returns_failure() -> None:
 def test_flat_map_complex_chain() -> None:
     """Test a complex chain simulating a real-world scenario."""
 
-    def validate_id(user_id: int) -> effect.Effect[int, str]:
-        if user_id <= 0:
-            return effect.fail("Invalid user ID")
-        return effect.succeed(user_id)
-
-    def fetch_user(user_id: int) -> effect.Effect[dict[str, str | int], str]:
-        return effect.succeed({"id": user_id, "name": f"User{user_id}"})
-
-    def extract_name(user: dict[str, str | int]) -> effect.Effect[str, str]:
-        return effect.succeed(str(user["name"]))
-
     result = pipe(
         effect.succeed(42),
-        effect.flat_map(validate_id),
-        effect.flat_map(fetch_user),
-        effect.flat_map(extract_name),
+        effect.flat_map(
+            lambda user_id: (
+                effect.fail("Invalid user ID") if user_id <= 0 else effect.succeed(user_id)
+            )
+        ),
+        effect.flat_map(lambda user_id: effect.succeed({"id": user_id, "name": f"User{user_id}"})),
+        effect.flat_map(lambda user: effect.succeed(str(user["name"]))),
     )
 
     assert effect.run_sync(result) == "User42"
@@ -325,18 +312,14 @@ def test_flat_map_complex_chain() -> None:
 def test_flat_map_complex_chain_with_failure() -> None:
     """Test complex chain that fails at validation."""
 
-    def validate_id(user_id: int) -> effect.Effect[int, str]:
-        if user_id <= 0:
-            return effect.fail("Invalid user ID")
-        return effect.succeed(user_id)
-
-    def fetch_user(user_id: int) -> effect.Effect[dict[str, str | int], str]:
-        return effect.succeed({"id": user_id, "name": f"User{user_id}"})
-
     result = pipe(
         effect.succeed(-1),  # Invalid ID
-        effect.flat_map(validate_id),
-        effect.flat_map(fetch_user),  # Should not execute
+        effect.flat_map(
+            lambda user_id: (
+                effect.fail("Invalid user ID") if user_id <= 0 else effect.succeed(user_id)
+            )
+        ),
+        effect.flat_map(lambda user_id: effect.succeed({"id": user_id, "name": f"User{user_id}"})),
     )
 
     exit_result = effect.run_sync_exit(result)

@@ -5,7 +5,7 @@ Provides if_, when, when_effect, unless, unless_effect, and zip.
 """
 
 from collections.abc import Callable
-from typing import Any, Never, Protocol, cast, overload
+from typing import Any, Literal, Never, Protocol, cast, overload
 
 import pyfect.option as option_module
 from pyfect.primitives import Effect, FlatMap, Map, Succeed, Suspend, ZipPar
@@ -120,9 +120,11 @@ def when(condition: Callable[[], bool]) -> WhenCallable:
 
     def _apply(eff: Effect[Any, Any, Any]) -> Effect[Any, Any, Any]:
         return Suspend(
-            lambda: FlatMap(eff, lambda a: Succeed(option_module.some(a)))
-            if condition()
-            else Succeed(option_module.nothing())
+            lambda: (
+                FlatMap(eff, lambda a: Succeed(option_module.some(a)))
+                if condition()
+                else Succeed(option_module.nothing())
+            )
         )
 
     return cast(WhenCallable, _apply)
@@ -155,9 +157,11 @@ def unless(condition: Callable[[], bool]) -> WhenCallable:
 
     def _apply(eff: Effect[Any, Any, Any]) -> Effect[Any, Any, Any]:
         return Suspend(
-            lambda: FlatMap(eff, lambda a: Succeed(option_module.some(a)))
-            if not condition()
-            else Succeed(option_module.nothing())
+            lambda: (
+                FlatMap(eff, lambda a: Succeed(option_module.some(a)))
+                if not condition()
+                else Succeed(option_module.nothing())
+            )
         )
 
     return cast(WhenCallable, _apply)
@@ -203,9 +207,11 @@ def when_effect[E2 = Never, R2 = Never](
     def _apply(eff: Effect[Any, Any, Any]) -> Effect[Any, Any, Any]:
         return FlatMap(
             condition,
-            lambda b: FlatMap(eff, lambda a: Succeed(option_module.some(a)))
-            if b
-            else Succeed(option_module.nothing()),
+            lambda b: (
+                FlatMap(eff, lambda a: Succeed(option_module.some(a)))
+                if b
+                else Succeed(option_module.nothing())
+            ),
         )
 
     return cast(WhenEffectCallable[E2, R2], _apply)
@@ -246,9 +252,11 @@ def unless_effect[E2 = Never, R2 = Never](
     def _apply(eff: Effect[Any, Any, Any]) -> Effect[Any, Any, Any]:
         return FlatMap(
             condition,
-            lambda b: FlatMap(eff, lambda a: Succeed(option_module.some(a)))
-            if not b
-            else Succeed(option_module.nothing()),
+            lambda b: (
+                FlatMap(eff, lambda a: Succeed(option_module.some(a)))
+                if not b
+                else Succeed(option_module.nothing())
+            ),
         )
 
     return cast(UnlessEffectCallable[E2, R2], _apply)
@@ -475,14 +483,196 @@ def zip(  # type: ignore[misc]
     return result
 
 
+# ============================================================================
+# zip_with
+# ============================================================================
+
+
+@overload
+def zip_with[A, B, C](
+    eff1: Effect[A, Never, Never],
+    eff2: Effect[B, Never, Never],
+    f: Callable[[A, B], C],
+    *,
+    concurrent: bool = ...,
+) -> Effect[C, Never, Never]: ...
+
+
+@overload
+def zip_with[A, B, C, E1, E2](  # type: ignore[overload-overlap]
+    eff1: Effect[A, E1, Never],
+    eff2: Effect[B, E2, Never],
+    f: Callable[[A, B], C],
+    *,
+    concurrent: bool = ...,
+) -> Effect[C, E1 | E2, Never]: ...
+
+
+@overload
+def zip_with[A, B, C, R1, R2](
+    eff1: Effect[A, Never, R1],
+    eff2: Effect[B, Never, R2],
+    f: Callable[[A, B], C],
+    *,
+    concurrent: bool = ...,
+) -> Effect[C, Never, R1 | R2]: ...
+
+
+@overload
+def zip_with[A, B, C, E1, E2, R1, R2](
+    eff1: Effect[A, E1, R1],
+    eff2: Effect[B, E2, R2],
+    f: Callable[[A, B], C],
+    *,
+    concurrent: bool = ...,
+) -> Effect[C, E1 | E2, R1 | R2]: ...
+
+
+def zip_with(  # type: ignore[misc]
+    eff1: Effect[Any, Any, Any],
+    eff2: Effect[Any, Any, Any],
+    f: Callable[[Any, Any], Any],
+    *,
+    concurrent: bool = False,
+) -> Effect[Any, Any, Any]:
+    """
+    Combine two effects and apply a function to their results.
+
+    Runs both effects (sequentially by default, concurrently with concurrent=True)
+    and applies f to their success values to produce a single result. The tuple
+    intermediate is never exposed to the caller.
+
+    Example:
+        ```python
+        from pyfect import effect
+
+        result = effect.zip_with(
+            effect.succeed(1),
+            effect.succeed("hello"),
+            lambda n, s: n + len(s),
+        )
+        effect.run_sync(result)  # 6
+        ```
+    """
+    if concurrent:
+        return Map(
+            cast(Effect[tuple[Any, Any], Any, Any], ZipPar((eff1, eff2))),
+            lambda t: f(t[0], t[1]),
+        )
+    return FlatMap(eff1, lambda a: Map(eff2, lambda b: f(a, b)))
+
+
+# ============================================================================
+# loop
+# ============================================================================
+
+
+@overload
+def loop[S, S2, A, E, R](
+    initial: S,
+    *,
+    while_: Callable[[S2], bool],
+    step: Callable[[S], S2],
+    body: Callable[[S2], Effect[A, E, R]],
+    discard: Literal[False] = ...,
+) -> Effect[list[A], E, R]: ...
+
+
+@overload
+def loop[S, S2, A, E, R](
+    initial: S,
+    *,
+    while_: Callable[[S2], bool],
+    step: Callable[[S], S2],
+    body: Callable[[S2], Effect[A, E, R]],
+    discard: Literal[True],
+) -> Effect[None, E, R]: ...
+
+
+def loop(
+    initial: Any,
+    *,
+    while_: Callable[[Any], bool],
+    step: Callable[[Any], Any],
+    body: Callable[[Any], Effect[Any, Any, Any]],
+    discard: bool = False,
+) -> Effect[Any, Any, Any]:
+    """
+    Repeatedly run an effect while a condition holds, collecting results.
+
+    Starts with initial state and on each iteration:
+    1. Checks while_(state) — stops if False
+    2. Runs body(state) for its effect
+    3. Advances state with step(state)
+
+    By default, collects body results into a list. Pass discard=True to
+    run for side effects only and return None.
+
+    Example (collecting):
+        ```python
+        from pyfect import effect
+
+        result = effect.loop(
+            1,
+            while_=lambda s: s <= 5,
+            step=lambda s: s + 1,
+            body=effect.succeed,
+        )
+        effect.run_sync(result)  # [1, 2, 3, 4, 5]
+        ```
+
+    Example (discarding):
+        ```python
+        from pyfect import effect
+
+        result = effect.loop(
+            1,
+            while_=lambda s: s <= 3,
+            step=lambda s: s + 1,
+            body=lambda s: effect.sync(lambda: print(s)),
+            discard=True,
+        )
+        effect.run_sync(result)  # prints 1, 2, 3 — returns None
+        ```
+    """
+    if discard:
+
+        def _run_discard(state: Any) -> Effect[Any, Any, Any]:
+            if not while_(state):
+                return cast(Effect[Any, Any, Any], Succeed(None))
+            next_state = step(state)
+            return FlatMap(  # type: ignore[misc]
+                body(state),
+                lambda _: Suspend(lambda: _run_discard(next_state)),
+            )
+
+        return Suspend(lambda: _run_discard(initial))
+
+    def _run_collect(state: Any) -> Effect[Any, Any, Any]:
+        if not while_(state):
+            return cast(Effect[Any, Any, Any], Succeed([]))
+        next_state = step(state)
+        return FlatMap(  # type: ignore[misc]
+            body(state),
+            lambda a: FlatMap(
+                Suspend(lambda: _run_collect(next_state)),
+                lambda rest: Succeed([a, *rest]),
+            ),
+        )
+
+    return Suspend(lambda: _run_collect(initial))
+
+
 __all__ = [
     "UnlessEffectCallable",
     "WhenCallable",
     "WhenEffectCallable",
     "if_",
+    "loop",
     "unless",
     "unless_effect",
     "when",
     "when_effect",
     "zip",
+    "zip_with",
 ]
