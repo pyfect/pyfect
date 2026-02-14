@@ -148,6 +148,13 @@ class Sleep:
     duration: timedelta
 
 
+@dataclass(frozen=True)
+class ZipPar:
+    """An effect that runs multiple effects concurrently and zips results into a tuple."""
+
+    effects: "tuple[Effect[Any, Any, Any], ...]"
+
+
 # Type alias for the Effect union
 type Effect[A, E = Never, R = Never] = (
     Succeed[A, E, R]
@@ -167,6 +174,7 @@ type Effect[A, E = Never, R = Never] = (
     | Provide[A, E]
     | MemoizedEffect[A, E, R]
     | Sleep
+    | ZipPar
 )
 
 
@@ -189,4 +197,5 @@ __all__ = [
     "TapError",
     "TryAsync",
     "TrySync",
+    "ZipPar",
 ]

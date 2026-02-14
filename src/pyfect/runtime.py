@@ -34,6 +34,7 @@ from pyfect.primitives import (
     TapError,
     TryAsync,
     TrySync,
+    ZipPar,
 )
 
 # ============================================================================
@@ -103,12 +104,14 @@ def _run_sync[A, E](effect: Effect[A, E, Any], ctx: Context[Any], memo: dict[int
         case Sleep(duration):
             time.sleep(duration.total_seconds())
             return cast(A, None)
+        case ZipPar(effects):
+            return cast(A, tuple(_run_sync(e, ctx, memo) for e in effects))
         case _:
             msg = f"Cannot run {type(effect).__name__} synchronously"
             raise RuntimeError(msg)
 
 
-def _run_async[A, E](
+def _run_async[A, E](  # noqa: PLR0915
     effect: Effect[A, E, Any], ctx: Context[Any], memo: dict[int, Any]
 ) -> Awaitable[A]:
     async def execute() -> A:  # noqa: PLR0911, PLR0912
@@ -177,6 +180,9 @@ def _run_async[A, E](
             case Sleep(duration):
                 await asyncio.sleep(duration.total_seconds())
                 return cast(A, None)
+            case ZipPar(effects):
+                results = await asyncio.gather(*(_run_async(e, ctx, memo) for e in effects))
+                return cast(A, tuple(results))
 
     return execute()
 
@@ -256,6 +262,16 @@ def _run_sync_exit[A, E](  # noqa: PLR0911, PLR0912, PLR0915
         case Sleep(duration):
             time.sleep(duration.total_seconds())
             return exit.succeed(cast(A, None))
+        case ZipPar(effects):
+            results = []
+            for eff in effects:
+                inner: Exit[Any, Any] = _run_sync_exit(eff, ctx, memo)
+                match inner:
+                    case exit.Success(value):
+                        results.append(value)
+                    case exit.Failure(error):
+                        return exit.fail(error)  # type: ignore[return-value]
+            return exit.succeed(cast(A, tuple(results)))
         case _:
             msg = f"Cannot run {type(effect).__name__} synchronously"
             raise RuntimeError(msg)
@@ -344,6 +360,12 @@ def _run_async_exit[A, E](  # noqa: PLR0915
             case Sleep(duration):
                 await asyncio.sleep(duration.total_seconds())
                 return exit.succeed(cast(A, None))
+            case ZipPar(effects):
+                try:
+                    results = await asyncio.gather(*(_run_async(e, ctx, memo) for e in effects))
+                    return exit.succeed(cast(A, tuple(results)))
+                except BaseException as e:
+                    return exit.fail(cast(E, e))
 
     return execute()
 
