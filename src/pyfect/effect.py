@@ -6,6 +6,7 @@ that operate on them. Import as `Effect` for the Effect TS-like API.
 """
 
 from collections.abc import Awaitable, Callable
+from datetime import timedelta
 from typing import Any, Never, Protocol, cast, overload
 
 import pyfect.either as either_module
@@ -27,6 +28,7 @@ from pyfect.primitives import (
     MapError,
     Provide,
     Service,
+    Sleep,
     Succeed,
     Suspend,
     Sync,
@@ -574,6 +576,40 @@ def unless_effect[E2 = Never, R2 = Never](
     return cast(UnlessEffectCallable[E2, R2], _apply)
 
 
+class DelayCallable(Protocol):
+    def __call__[A, E, R](self, eff: Effect[A, E, R]) -> Effect[A, E, R]: ...
+
+
+def delay(duration: timedelta) -> DelayCallable:
+    """
+    Delay the execution of an effect by the given duration.
+
+    The delay runs first using a non-blocking sleep (asyncio.sleep in async
+    runtimes, time.sleep in the sync runtime), then the original effect runs.
+    The value, error, and requirement types are preserved unchanged.
+
+    Designed for use with pipe:
+
+    Example:
+        ```python
+        from datetime import timedelta
+        from pyfect import effect, pipe
+
+        program = pipe(
+            effect.succeed(42),
+            effect.delay(timedelta(seconds=2)),
+        )
+
+        effect.run_sync(program)  # waits 2 seconds, then returns 42
+        ```
+    """
+
+    def _apply(eff: Effect[Any, Any, Any]) -> Effect[Any, Any, Any]:
+        return FlatMap(cast(Effect[None, Never, Never], Sleep(duration)), lambda _: eff)
+
+    return cast(DelayCallable, _apply)
+
+
 class ProvideCallable[R, E2 = Never](Protocol):
     def __call__[A, E1](self, eff: Effect[A, E1, R]) -> Effect[A, E1 | E2, Never]: ...
 
@@ -653,6 +689,7 @@ from pyfect.runtime import (  # noqa: E402
 __all__ = [
     "AsCallable",
     "Async",
+    "DelayCallable",
     "Effect",
     "Exit",
     "Fail",
@@ -670,6 +707,7 @@ __all__ = [
     "Provide",
     "ProvideCallable",
     "Service",
+    "Sleep",
     "Succeed",
     "Success",
     "Suspend",
@@ -685,6 +723,7 @@ __all__ = [
     "WhenEffectCallable",
     "as_",
     "async_",
+    "delay",
     "fail",
     "flat_map",
     "from_either",

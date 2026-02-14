@@ -5,7 +5,9 @@ This module contains the runtime functions that execute effects,
 converting effect descriptions into actual computation.
 """
 
+import asyncio
 import contextlib
+import time
 from collections.abc import Awaitable
 from typing import Any, Never, cast
 
@@ -24,6 +26,7 @@ from pyfect.primitives import (
     MemoizedEffect,
     Provide,
     Service,
+    Sleep,
     Succeed,
     Suspend,
     Sync,
@@ -97,6 +100,9 @@ def _run_sync[A, E](effect: Effect[A, E, Any], ctx: Context[Any], memo: dict[int
             result = _run_sync(inner_effect, ctx, memo)
             memo[layer_id] = result
             return result
+        case Sleep(duration):
+            time.sleep(duration.total_seconds())
+            return cast(A, None)
         case _:
             msg = f"Cannot run {type(effect).__name__} synchronously"
             raise RuntimeError(msg)
@@ -168,11 +174,14 @@ def _run_async[A, E](
                 result = await _run_async(inner_effect, ctx, memo)
                 memo[layer_id] = result
                 return result
+            case Sleep(duration):
+                await asyncio.sleep(duration.total_seconds())
+                return cast(A, None)
 
     return execute()
 
 
-def _run_sync_exit[A, E](  # noqa: PLR0911, PLR0912
+def _run_sync_exit[A, E](  # noqa: PLR0911, PLR0912, PLR0915
     effect: Effect[A, E, Any], ctx: Context[Any], memo: dict[int, Any]
 ) -> Exit[A, E]:
     match effect:
@@ -244,6 +253,9 @@ def _run_sync_exit[A, E](  # noqa: PLR0911, PLR0912
                     return exit.succeed(value)
                 case exit.Failure(error):
                     return exit.fail(error)
+        case Sleep(duration):
+            time.sleep(duration.total_seconds())
+            return exit.succeed(cast(A, None))
         case _:
             msg = f"Cannot run {type(effect).__name__} synchronously"
             raise RuntimeError(msg)
@@ -329,6 +341,9 @@ def _run_async_exit[A, E](  # noqa: PLR0915
                         return exit.succeed(value)
                     case exit.Failure(error):
                         return exit.fail(error)
+            case Sleep(duration):
+                await asyncio.sleep(duration.total_seconds())
+                return exit.succeed(cast(A, None))
 
     return execute()
 

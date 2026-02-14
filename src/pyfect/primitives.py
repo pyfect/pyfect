@@ -7,6 +7,7 @@ of effects, and the Effect union type that combines them all.
 
 from collections.abc import Awaitable, Callable
 from dataclasses import dataclass
+from datetime import timedelta
 from typing import TYPE_CHECKING, Any, Never
 
 if TYPE_CHECKING:
@@ -140,6 +141,13 @@ class MemoizedEffect[A, E, R]:
     layer_id: int
 
 
+@dataclass(frozen=True)
+class Sleep:
+    """An effect that delays execution by the given duration."""
+
+    duration: timedelta
+
+
 # Type alias for the Effect union
 type Effect[A, E = Never, R = Never] = (
     Succeed[A, E, R]
@@ -158,6 +166,7 @@ type Effect[A, E = Never, R = Never] = (
     | Service[A]
     | Provide[A, E]
     | MemoizedEffect[A, E, R]
+    | Sleep
 )
 
 
@@ -172,6 +181,7 @@ __all__ = [
     "MemoizedEffect",
     "Provide",
     "Service",
+    "Sleep",
     "Succeed",
     "Suspend",
     "Sync",
