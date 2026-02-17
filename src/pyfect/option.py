@@ -7,30 +7,61 @@ representing the absence of a value.
 
 from collections.abc import Callable, Iterable
 from dataclasses import dataclass
-from typing import TypeIs, overload
+from typing import NoReturn, TypeIs, overload
 
 # ============================================================================
 # Option Types
 # ============================================================================
 
 
+class Option[A]:
+    """Base class for Option variants.
+
+    Using a base class (rather than a union type alias) allows type checkers
+    to extract TypeVar A nominally from Option[A] instances,
+    which is required for correct TypeVar solving in multi-step pipe chains
+    and heterogeneous collections.
+    """
+
+    __slots__ = ()
+
+
 @dataclass(frozen=True)
-class Some[A]:
+class Some[A](Option[A]):
     """An Option containing a value."""
 
     value: A
 
 
-@dataclass(frozen=True)
-class Nothing:
-    """An Option representing the absence of a value."""
+class _NothingClass(Option):  # type: ignore[type-arg]
+    """An Option representing the absence of a value.
+
+    Inherits from Option without binding the type parameter,
+    making it compatible with Option[A] for any A.
+    """
+
+    __slots__ = ("_initialized",)
+    _instance = None
+
+    def __new__(cls) -> "_NothingClass":
+        if cls._instance is None:
+            cls._instance = object.__new__(cls)
+            cls._instance._initialized = True  # type: ignore[attr-defined]
+        return cls._instance
+
+    def __repr__(self) -> str:
+        return "Nothing()"
+
+    def __eq__(self, other: object) -> bool:
+        return isinstance(other, _NothingClass)
+
+    def __hash__(self) -> int:
+        return hash("Nothing")
 
 
-# Singleton - reuse instead of instantiating Nothing each time
-NOTHING = Nothing()
-
-# Type alias for the Option union
-type Option[A] = Some[A] | Nothing
+# Singleton instance and type alias for pattern matching
+NOTHING = _NothingClass()
+Nothing = _NothingClass
 
 
 # ============================================================================
@@ -66,16 +97,32 @@ def nothing() -> Nothing:
     return NOTHING
 
 
+@overload
+def from_optional(value: None) -> Nothing:
+    """Convert None to Nothing."""
+
+
+@overload
+def from_optional[A](value: A | None) -> Option[A]:
+    """Convert an optional value to an Option."""
+
+
 def from_optional[A](value: A | None) -> Option[A]:
     """
     Convert a Python optional value to an Option.
 
     None becomes Nothing, any other value becomes Some.
 
+    Type narrows when input is definitely None:
+    - from_optional(None) returns Nothing
+    - from_optional(maybe_value) returns Option[T] when maybe_value: T | None
+
     Example:
         ```python
         from_optional(42)  # Some(value=42)
-        from_optional(None)  # Nothing()
+        from_optional(None)  # Nothing (type narrowed!)
+        maybe: int | None = get_value()
+        from_optional(maybe)  # Option[int]
         ```
     """
     return NOTHING if value is None else Some(value)
@@ -130,6 +177,94 @@ def is_nothing[A](option: Option[A]) -> TypeIs[Nothing]:
 
 
 # ============================================================================
+# Pattern Matching
+# ============================================================================
+
+
+@overload
+def match_[A, B, C](
+    *,
+    on_some: Callable[[A], B],
+    on_nothing: Callable[[], C],
+) -> Callable[[Option[A]], B | C]:
+    """Curried version: returns a function that matches an Option."""
+
+
+@overload
+def match_[A, B, C](
+    option: Nothing,
+    *,
+    on_some: Callable[[A], B],
+    on_nothing: Callable[[], C],
+) -> C:
+    """Data-first version for Nothing: always returns C."""
+
+
+@overload
+def match_[A, B, C](
+    option: Option[A],
+    *,
+    on_some: Callable[[A], B],
+    on_nothing: Callable[[], C],
+) -> B | C:
+    """Data-first version: matches an Option directly."""
+
+
+def match_[A, B, C](
+    option: Option[A] | None = None,
+    *,
+    on_some: Callable[[A], B],
+    on_nothing: Callable[[], C],
+) -> B | C | Callable[[Option[A]], B | C]:
+    """
+    Match on an Option, handling both Some and Nothing cases.
+
+    Provides an alternative to pattern matching with guaranteed exhaustiveness.
+    Supports both curried (for use in pipes) and data-first styles.
+
+    Args:
+        option: Optional Option to match on. If None, returns a curried function.
+        on_some: Function to apply if the Option is Some.
+        on_nothing: Thunk to call if the Option is Nothing.
+
+    Returns:
+        If option is provided: B | C (the result of applying the appropriate function).
+        If option is None: A function that takes an Option and returns B | C.
+
+    Example:
+        ```python
+        # Curried style (for use in pipes)
+        pipe(
+            some(42),
+            match_(on_some=lambda n: f"Value: {n}", on_nothing=lambda: "Empty")
+        )
+        # 'Value: 42'
+
+        # Data-first style
+        result = match_(
+            some(42),
+            on_some=lambda n: f"Value: {n}",
+            on_nothing=lambda: "Empty"
+        )
+        # 'Value: 42'
+        ```
+    """
+    if option is None:
+        # Curried version
+        def _match(opt: Option[A]) -> B | C:
+            if isinstance(opt, Some):
+                return on_some(opt.value)
+            return on_nothing()
+
+        return _match
+
+    # Data-first version
+    if isinstance(option, Some):
+        return on_some(option.value)
+    return on_nothing()
+
+
+# ============================================================================
 # Transformations
 # ============================================================================
 
@@ -149,11 +284,9 @@ def map[A, B](f: Callable[[A], B]) -> Callable[[Option[A]], Option[B]]:
     """
 
     def _map(opt: Option[A]) -> Option[B]:
-        match opt:
-            case Some(value):
-                return Some(f(value))
-            case Nothing():
-                return NOTHING
+        if isinstance(opt, Some):
+            return Some(f(opt.value))
+        return NOTHING
 
     return _map
 
@@ -180,11 +313,9 @@ def flat_map[A, B](f: Callable[[A], Option[B]]) -> Callable[[Option[A]], Option[
     """
 
     def _flat_map(opt: Option[A]) -> Option[B]:
-        match opt:
-            case Some(value):
-                return f(value)
-            case Nothing():
-                return NOTHING
+        if isinstance(opt, Some):
+            return f(opt.value)
+        return NOTHING
 
     return _flat_map
 
@@ -207,11 +338,9 @@ def filter[A](predicate: Callable[[A], bool]) -> Callable[[Option[A]], Option[A]
     """
 
     def _filter(opt: Option[A]) -> Option[A]:
-        match opt:
-            case Some(value):
-                return opt if predicate(value) else NOTHING
-            case Nothing():
-                return NOTHING
+        if isinstance(opt, Some):
+            return opt if predicate(opt.value) else NOTHING
+        return NOTHING
 
     return _filter
 
@@ -221,6 +350,21 @@ def filter[A](predicate: Callable[[A], bool]) -> Callable[[Option[A]], Option[A]
 # ============================================================================
 
 
+@overload
+def get_or_none[A](opt: Some[A]) -> A:
+    """Return the value from Some, narrowed to A."""
+
+
+@overload
+def get_or_none(opt: Nothing) -> None:
+    """Return None from Nothing, narrowed to None."""
+
+
+@overload
+def get_or_none[A](opt: Option[A]) -> A | None:
+    """Return the value or None."""
+
+
 def get_or_none[A](opt: Option[A]) -> A | None:
     """
     Return the value if Some, or None if Nothing.
@@ -228,18 +372,21 @@ def get_or_none[A](opt: Option[A]) -> A | None:
     Useful for interoperating with code that uses None to represent
     the absence of a value.
 
+    Type narrows when input is Nothing:
+    - get_or_none(nothing()) returns None (type narrowed!)
+    - get_or_none(some(42)) returns int | None
+    - get_or_none(maybe_opt) returns int | None when maybe_opt: Option[int]
+
     Example:
         ```python
         from pyfect import pipe
         pipe(some(42), get_or_none)  # 42
-        pipe(nothing(), get_or_none)  # None
+        pipe(nothing(), get_or_none)  # None (type: None)
         ```
     """
-    match opt:
-        case Some(value):
-            return value
-        case Nothing():
-            return None
+    if opt is NOTHING:
+        return None
+    return opt.value  # type: ignore[attr-defined]  # pyright: ignore[reportAttributeAccessIssue]
 
 
 def get_or_else[A](default: Callable[[], A]) -> Callable[[Option[A]], A]:
@@ -257,31 +404,47 @@ def get_or_else[A](default: Callable[[], A]) -> Callable[[Option[A]], A]:
     """
 
     def _get_or_else(opt: Option[A]) -> A:
-        match opt:
-            case Some(value):
-                return value
-            case Nothing():
-                return default()
+        if isinstance(opt, Some):
+            return opt.value
+        return default()
 
     return _get_or_else
+
+
+@overload
+def get_or_raise(opt: Nothing) -> NoReturn:
+    """Raise ValueError when called with Nothing."""
+
+
+@overload
+def get_or_raise[A](opt: Option[A]) -> A:
+    """Return the value or raise ValueError."""
 
 
 def get_or_raise[A](opt: Option[A]) -> A:
     """
     Return the value if Some, or raise ValueError if Nothing.
 
+    Type narrows when input is Nothing:
+    - get_or_raise(nothing()) has type NoReturn (always raises)
+    - get_or_raise(some(42)) returns the value
+    - get_or_raise(maybe_opt) returns A when maybe_opt: Option[A]
+
     Example:
         ```python
         get_or_raise(some(42))  # 42
-        get_or_raise(nothing())  # raises ValueError: get_or_raise called on Nothing
+        get_or_raise(nothing())  # raises ValueError (type: NoReturn)
+
+        # Useful for control flow
+        if is_nothing(opt):
+            get_or_raise(opt)  # Type checker knows this never returns
+            # Unreachable code
         ```
     """
-    match opt:
-        case Some(value):
-            return value
-        case Nothing():
-            msg = "get_or_raise called on Nothing"
-            raise ValueError(msg)
+    if isinstance(opt, Some):
+        return opt.value
+    msg = "get_or_raise called on Nothing"
+    raise ValueError(msg)
 
 
 # ============================================================================
@@ -305,13 +468,38 @@ def or_else[A](alternative: Callable[[], Option[A]]) -> Callable[[Option[A]], Op
     """
 
     def _or_else(opt: Option[A]) -> Option[A]:
-        match opt:
-            case Some():
-                return opt
-            case Nothing():
-                return alternative()
+        if isinstance(opt, Some):
+            return opt
+        return alternative()
 
     return _or_else
+
+
+@overload
+def zip_with[A, B, C](
+    opt_a: Nothing,
+    opt_b: Option[B],
+    f: Callable[[A, B], C],
+) -> Nothing:
+    """If first Option is Nothing, returns Nothing."""
+
+
+@overload
+def zip_with[A, B, C](
+    opt_a: Option[A],
+    opt_b: Nothing,
+    f: Callable[[A, B], C],
+) -> Nothing:
+    """If second Option is Nothing, returns Nothing."""
+
+
+@overload
+def zip_with[A, B, C](
+    opt_a: Option[A],
+    opt_b: Option[B],
+    f: Callable[[A, B], C],
+) -> Option[C]:
+    """General case: returns Option[C]."""
 
 
 def zip_with[A, B, C](
@@ -325,11 +513,17 @@ def zip_with[A, B, C](
     If both are Some, applies f to their values and returns Some(result).
     If either is Nothing, returns Nothing.
 
+    Type narrows when either input is Nothing:
+    - zip_with(nothing(), opt_b, f) returns Nothing
+    - zip_with(opt_a, nothing(), f) returns Nothing
+    - zip_with(opt_a, opt_b, f) returns Option[C] (general case)
+
     Example:
         ```python
         zip_with(some("John"), some(25), lambda name, age: {"name": name, "age": age})
         # Some(value={'name': 'John', 'age': 25})
-        zip_with(some("John"), nothing(), lambda name, age: (name, age))  # Nothing()
+        zip_with(some("John"), nothing(), lambda name, age: (name, age))
+        # Nothing() (type: Nothing)
         ```
     """
     match opt_a, opt_b:
@@ -394,20 +588,18 @@ def all[A, K](
     if isinstance(options, dict):
         result: dict[K, A] = {}  # type: ignore[valid-type]
         for key, opt in options.items():
-            match opt:
-                case Some(value):
-                    result[key] = value  # type: ignore[index]
-                case Nothing():
-                    return NOTHING
+            if isinstance(opt, Some):
+                result[key] = opt.value  # type: ignore[index]
+            else:
+                return NOTHING
         return Some(result)
 
     values: list[A] = []
     for opt in options:
-        match opt:
-            case Some(value):
-                values.append(value)
-            case Nothing():
-                return NOTHING
+        if isinstance(opt, Some):
+            values.append(opt.value)
+        else:
+            return NOTHING
     return Some(values)
 
 
@@ -428,6 +620,7 @@ __all__ = [
     "is_some",
     "lift_predicate",
     "map",
+    "match_",
     "nothing",
     "or_else",
     "some",

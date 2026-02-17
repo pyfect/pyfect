@@ -11,7 +11,7 @@ def test_first_some_of_returns_first_some() -> None:
             option.nothing(),
             option.some(2),
             option.nothing(),
-            option.some(3),
+            option.some("hello"),
         ]
     )
     assert option.is_some(result)

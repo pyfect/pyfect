@@ -159,16 +159,10 @@ def test_tap_with_pipe() -> None:
     """Test that curried tap works beautifully with pipe."""
     executed = []
 
-    def log_first(x: int) -> effect.Effect[None]:
-        return effect.sync(lambda: executed.append(f"First: {x}"))
-
-    def log_second(x: int) -> effect.Effect[None]:
-        return effect.sync(lambda: executed.append(f"Second: {x}"))
-
     result_effect = pipe(
         effect.succeed(42),
-        effect.tap(log_first),
-        effect.tap(log_second),
+        effect.tap(lambda x: effect.sync(lambda: executed.append(f"First: {x}"))),
+        effect.tap(lambda x: effect.sync(lambda: executed.append(f"Second: {x}"))),
     )
 
     result = effect.run_sync(result_effect)

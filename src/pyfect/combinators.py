@@ -39,12 +39,12 @@ class MapErrorCallable[E, E2](Protocol):
     def __call__[A, R](self, eff: Effect[A, E, R]) -> Effect[A, E2, R]: ...
 
 
-class TapCallable[A, E2 = Never, R2 = Never](Protocol):
-    def __call__[E, R](self, eff: Effect[A, E, R]) -> Effect[A, E | E2, R | R2]: ...
+class TapCallable[E2 = Never, R2 = Never](Protocol):
+    def __call__[A, E, R](self, eff: Effect[A, E, R]) -> Effect[A, E | E2, R | R2]: ...
 
 
-class TapErrorCallable[E, E2 = Never, R2 = Never](Protocol):
-    def __call__[A, R](self, eff: Effect[A, E, R]) -> Effect[A, E | E2, R | R2]: ...
+class TapErrorCallable[E2 = Never, R2 = Never](Protocol):
+    def __call__[A, E, R](self, eff: Effect[A, E, R]) -> Effect[A, E | E2, R | R2]: ...
 
 
 # ============================================================================
@@ -249,7 +249,7 @@ def map_error[E, E2](
 
 def tap[A, B, E2 = Never, R2 = Never](
     f: Callable[[A], Effect[B, E2, R2]],
-) -> TapCallable[A, E2, R2]:
+) -> TapCallable[E2, R2]:
     """
     Inspect the success value without modifying it.
 
@@ -282,12 +282,12 @@ def tap[A, B, E2 = Never, R2 = Never](
     def _apply(eff: Effect[A, Any, Any]) -> Effect[A, Any, Any]:
         return cast(Effect[A, Any, Any], Tap(eff, f))
 
-    return cast(TapCallable[A, E2, R2], _apply)
+    return cast(TapCallable[E2, R2], _apply)
 
 
 def tap_error[E, B, E2 = Never, R2 = Never](
     f: Callable[[E], Effect[B, E2, R2]],
-) -> TapErrorCallable[E, E2, R2]:
+) -> TapErrorCallable[E2, R2]:
     """
     Inspect the error value without modifying it.
 
@@ -313,7 +313,7 @@ def tap_error[E, B, E2 = Never, R2 = Never](
     def _apply(eff: Effect[Any, E, Any]) -> Effect[Any, Any, Any]:
         return cast(Effect[Any, Any, Any], TapError(eff, f))
 
-    return cast(TapErrorCallable[E, E2, R2], _apply)
+    return cast(TapErrorCallable[E2, R2], _apply)
 
 
 __all__ = [

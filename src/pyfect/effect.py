@@ -330,11 +330,9 @@ def from_option[A, E](
     """
 
     def _from_option(opt: option_module.Option[A]) -> Effect[A, E]:
-        match opt:
-            case option_module.Some(value):
-                return Succeed(value)
-            case option_module.Nothing():
-                return Fail(error())
+        if isinstance(opt, option_module.Some):
+            return Succeed(opt.value)
+        return Fail(error())
 
     return _from_option
 

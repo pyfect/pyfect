@@ -16,7 +16,7 @@ def test_or_else_nothing_returns_alternative() -> None:
 
 
 def test_or_else_nothing_alternative_also_nothing() -> None:
-    result = pipe(option.nothing(), option.or_else(lambda: option.nothing()))
+    result = pipe(option.nothing(), option.or_else(option.nothing))
     assert option.is_nothing(result)
 
 

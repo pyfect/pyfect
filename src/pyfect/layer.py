@@ -48,12 +48,12 @@ class LayerProvideCallable[In, E2 = Never, InOuter = Never](Protocol):
     def __call__[Out, E1](self, inner: Layer[Out, E1, In]) -> Layer[Out, E1 | E2, InOuter]: ...
 
 
-class LayerTapCallable[Out, E2 = Never, R2 = Never](Protocol):
-    def __call__[E, In](self, layer_: Layer[Out, E, In]) -> Layer[Out, E | E2, In | R2]: ...
+class LayerTapCallable[E2 = Never, R2 = Never](Protocol):
+    def __call__[Out, E, In](self, layer_: Layer[Out, E, In]) -> Layer[Out, E | E2, In | R2]: ...
 
 
-class LayerTapErrorCallable[E, E2 = Never, R2 = Never](Protocol):
-    def __call__[Out, In](self, layer_: Layer[Out, E, In]) -> Layer[Out, E | E2, In | R2]: ...
+class LayerTapErrorCallable[E2 = Never, R2 = Never](Protocol):
+    def __call__[Out, E, In](self, layer_: Layer[Out, E, In]) -> Layer[Out, E | E2, In | R2]: ...
 
 
 # ============================================================================
@@ -215,7 +215,7 @@ def launch[Out, E](layer_: Layer[Out, E, Never]) -> Effect[None, E, Never]:
 
 def tap[Out, B, E2 = Never, R2 = Never](
     f: Callable[[Context[Out]], Effect[B, E2, R2]],
-) -> LayerTapCallable[Out, E2, R2]:
+) -> LayerTapCallable[E2, R2]:
     """Peek at the built context when layer construction succeeds.
 
     Runs f for its side effects and passes the context through unchanged.
@@ -235,12 +235,12 @@ def tap[Out, B, E2 = Never, R2 = Never](
     def _apply(layer_: Layer[Any, Any, Any]) -> Layer[Any, Any, Any]:
         return Layer(cast(Effect[Context[Any], Any, Any], Tap(layer_._effect, f)))
 
-    return cast(LayerTapCallable[Out, E2, R2], _apply)
+    return cast(LayerTapCallable[E2, R2], _apply)
 
 
 def tap_error[E, B, E2 = Never, R2 = Never](
     f: Callable[[E], Effect[B, E2, R2]],
-) -> LayerTapErrorCallable[E, E2, R2]:
+) -> LayerTapErrorCallable[E2, R2]:
     """Peek at the error when layer construction fails.
 
     Runs f for its side effects and re-raises the original error unchanged.
@@ -260,7 +260,7 @@ def tap_error[E, B, E2 = Never, R2 = Never](
     def _apply(layer_: Layer[Any, Any, Any]) -> Layer[Any, Any, Any]:
         return Layer(cast(Effect[Context[Any], Any, Any], TapError(layer_._effect, f)))
 
-    return cast(LayerTapErrorCallable[E, E2, R2], _apply)
+    return cast(LayerTapErrorCallable[E2, R2], _apply)
 
 
 def effect[Out, E, In](tag: type[Out], eff: Effect[Out, E, In]) -> Layer[Out, E, In]:

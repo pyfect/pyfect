@@ -108,6 +108,104 @@ def is_left[R, L](either: Either[R, L]) -> TypeIs[Left[R, L]]:
 
 
 # ============================================================================
+# Pattern Matching
+# ============================================================================
+
+
+@overload
+def match_[R, L, B, C](
+    *,
+    on_left: Callable[[L], B],
+    on_right: Callable[[R], C],
+) -> Callable[[Either[R, L]], B | C]:
+    """Curried version: returns a function that matches an Either."""
+
+
+@overload
+def match_[R, B, C](
+    either: Either[R, Never],
+    *,
+    on_left: Callable[[Never], B],
+    on_right: Callable[[R], C],
+) -> C:
+    """Data-first version for Right[R, Never]: always returns C."""
+
+
+@overload
+def match_[L, B, C](
+    either: Either[Never, L],
+    *,
+    on_left: Callable[[L], B],
+    on_right: Callable[[Never], C],
+) -> B:
+    """Data-first version for Left[Never, L]: always returns B."""
+
+
+@overload
+def match_[R, L, B, C](
+    either: Either[R, L],
+    *,
+    on_left: Callable[[L], B],
+    on_right: Callable[[R], C],
+) -> B | C:
+    """Data-first version: matches an Either directly."""
+
+
+def match_[R, L, B, C](
+    either: Either[R, L] | None = None,
+    *,
+    on_left: Callable[[L], B],
+    on_right: Callable[[R], C],
+) -> B | C | Callable[[Either[R, L]], B | C]:
+    """
+    Match on an Either, handling both Left and Right cases.
+
+    Provides an alternative to pattern matching with guaranteed exhaustiveness.
+    Supports both curried (for use in pipes) and data-first styles.
+
+    Args:
+        either: Optional Either to match on. If None, returns a curried function.
+        on_left: Function to apply if the Either is Left.
+        on_right: Function to apply if the Either is Right.
+
+    Returns:
+        If either is provided: B | C (the result of applying the appropriate function).
+        If either is None: A function that takes an Either and returns B | C.
+
+    Example:
+        ```python
+        # Curried style (for use in pipes)
+        pipe(
+            right(42),
+            match_(on_left=lambda e: f"Error: {e}", on_right=lambda n: f"Success: {n}")
+        )
+        # 'Success: 42'
+
+        # Data-first style
+        result = match_(
+            right(42),
+            on_left=lambda e: f"Error: {e}",
+            on_right=lambda n: f"Success: {n}"
+        )
+        # 'Success: 42'
+        ```
+    """
+    if either is None:
+        # Curried version
+        def _match(e: Either[R, L]) -> B | C:
+            if is_right(e):
+                return on_right(e.value)
+            return on_left(e.value)  # type: ignore[attr-defined]  # pyright: ignore[reportAttributeAccessIssue]
+
+        return _match
+
+    # Data-first version
+    if isinstance(either, Right):
+        return on_right(either.value)
+    return on_left(either.value)  # type: ignore[attr-defined]  # pyright: ignore[reportAttributeAccessIssue]
+
+
+# ============================================================================
 # Mapping
 # ============================================================================
 
@@ -126,14 +224,9 @@ def map[R, R2, L](f: Callable[[R], R2]) -> Callable[[Either[R, L]], Either[R2, L
     """
 
     def _map(e: Either[R, L]) -> Either[R2, L]:
-        match e:
-            case Right(value):
-                return Right(f(value))
-            case Left():
-                return cast(Either[R2, L], e)
-            case _:  # pragma: no cover
-                msg = f"Unexpected Either variant: {type(e).__name__}"
-                raise AssertionError(msg)
+        if is_right(e):
+            return Right(f(e.value))
+        return cast(Either[R2, L], e)
 
     return _map
 
@@ -152,14 +245,9 @@ def map_left[R, L, L2](f: Callable[[L], L2]) -> Callable[[Either[R, L]], Either[
     """
 
     def _map_left(e: Either[R, L]) -> Either[R, L2]:
-        match e:
-            case Left(value):
-                return Left(f(value))
-            case Right():
-                return cast(Either[R, L2], e)
-            case _:  # pragma: no cover
-                msg = f"Unexpected Either variant: {type(e).__name__}"
-                raise AssertionError(msg)
+        if is_left(e):
+            return Left(f(e.value))
+        return cast(Either[R, L2], e)
 
     return _map_left
 
@@ -183,14 +271,9 @@ def map_both[R, R2, L, L2](
     """
 
     def _map_both(e: Either[R, L]) -> Either[R2, L2]:
-        match e:
-            case Right(value):
-                return Right(on_right(value))
-            case Left(value):
-                return Left(on_left(value))
-            case _:  # pragma: no cover
-                msg = f"Unexpected Either variant: {type(e).__name__}"
-                raise AssertionError(msg)
+        if is_right(e):
+            return Right(on_right(e.value))
+        return Left(on_left(e.value))  # type: ignore[attr-defined]  # pyright: ignore[reportAttributeAccessIssue]
 
     return _map_both
 
@@ -222,14 +305,9 @@ def flat_map[R, R2, L1, L2](
     """
 
     def _flat_map(e: Either[R, L1]) -> Either[R2, L1 | L2]:
-        match e:
-            case Right(value):
-                return cast(Either[R2, L1 | L2], f(value))
-            case Left():
-                return cast(Either[R2, L1 | L2], e)
-            case _:  # pragma: no cover
-                msg = f"Unexpected Either variant: {type(e).__name__}"
-                raise AssertionError(msg)
+        if is_right(e):
+            return f(e.value)
+        return cast(Either[R2, L1 | L2], e)
 
     return _flat_map
 
@@ -292,21 +370,11 @@ def zip_with[R1, R2, R3, L1, L2](
         # Left(value='no name')
         ```
     """
-    match e1:
-        case Right(a):
-            match e2:
-                case Right(b):
-                    return Right(f(a, b))
-                case Left():
-                    return cast(Either[R3, L1 | L2], e2)
-                case _:  # pragma: no cover
-                    msg = f"Unexpected Either variant: {type(e2).__name__}"
-                    raise AssertionError(msg)
-        case Left():
-            return cast(Either[R3, L1 | L2], e1)
-        case _:  # pragma: no cover
-            msg = f"Unexpected Either variant: {type(e1).__name__}"
-            raise AssertionError(msg)
+    if is_right(e1):
+        if is_right(e2):
+            return Right(f(e1.value, e2.value))
+        return cast(Either[R3, L1 | L2], e2)
+    return cast(Either[R3, L1 | L2], e1)
 
 
 @overload
@@ -349,26 +417,18 @@ def all[R, L, K](
     if isinstance(eithers, dict):
         result_dict: dict[K, R] = {}  # type: ignore[valid-type]
         for key, e in eithers.items():
-            match e:
-                case Right(value):
-                    result_dict[key] = value  # type: ignore[index]
-                case Left():
-                    return cast(Either[dict[K, R], L], e)
-                case _:  # pragma: no cover
-                    msg = f"Unexpected Either variant: {type(e).__name__}"
-                    raise AssertionError(msg)
+            if is_right(e):
+                result_dict[key] = e.value  # type: ignore[index]
+            else:
+                return cast(Either[dict[K, R], L], e)
         return Right(result_dict)
 
     result_list: list[R] = []
     for e in eithers:
-        match e:
-            case Right(value):
-                result_list.append(value)
-            case Left():
-                return cast(Either[list[R], L], e)
-            case _:  # pragma: no cover
-                msg = f"Unexpected Either variant: {type(e).__name__}"
-                raise AssertionError(msg)
+        if is_right(e):
+            result_list.append(e.value)
+        else:
+            return cast(Either[list[R], L], e)
     return Right(result_list)
 
 
@@ -384,6 +444,7 @@ __all__ = [
     "map",
     "map_both",
     "map_left",
+    "match_",
     "right",
     "zip_with",
 ]

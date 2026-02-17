@@ -69,17 +69,16 @@ def _run_sync[A, E](effect: Effect[A, E, Any], ctx: Context[Any], memo: dict[int
             return cast(A, None)
         case MapError(inner_effect, f):
             inner_result = _run_sync_exit(inner_effect, ctx, memo)
-            match inner_result:
-                case exit.Success(value):
-                    return value
-                case exit.Failure(error):
-                    transformed = f(cast(Any, error))
-                    if isinstance(transformed, BaseException):
-                        if isinstance(error, BaseException):
-                            raise transformed from error
-                        raise transformed
-                    msg = f"effect failed: {transformed}"
-                    raise RuntimeError(msg)
+            if isinstance(inner_result, exit.Success):
+                return inner_result.value
+            # isinstance(inner_result, exit.Failure)  # noqa: ERA001
+            transformed = f(cast(Any, inner_result.error))  # type: ignore[attr-defined]  # pyright: ignore[reportAttributeAccessIssue]
+            if isinstance(transformed, BaseException):
+                if isinstance(inner_result.error, BaseException):  # type: ignore[attr-defined]  # pyright: ignore[reportAttributeAccessIssue]
+                    raise transformed from inner_result.error  # type: ignore[attr-defined]  # pyright: ignore[reportAttributeAccessIssue]
+                raise transformed
+            msg = f"effect failed: {transformed}"
+            raise RuntimeError(msg)
         case TapError(inner_effect, f):
             try:
                 return _run_sync(inner_effect, ctx, memo)
@@ -143,17 +142,16 @@ def _run_async[A, E](  # noqa: PLR0915
                 return cast(A, None)
             case MapError(inner_effect, f):
                 inner_result = await _run_async_exit(inner_effect, ctx, memo)
-                match inner_result:
-                    case exit.Success(value):
-                        return value
-                    case exit.Failure(error):
-                        transformed = f(cast(Any, error))
-                        if isinstance(transformed, BaseException):
-                            if isinstance(error, BaseException):
-                                raise transformed from error
-                            raise transformed
-                        msg = f"effect failed: {transformed}"
-                        raise RuntimeError(msg)
+                if isinstance(inner_result, exit.Success):
+                    return inner_result.value
+                # isinstance(inner_result, exit.Failure)  # noqa: ERA001
+                transformed = f(cast(Any, inner_result.error))  # type: ignore[attr-defined]  # pyright: ignore[reportAttributeAccessIssue]
+                if isinstance(transformed, BaseException):
+                    if isinstance(inner_result.error, BaseException):  # type: ignore[attr-defined]  # pyright: ignore[reportAttributeAccessIssue]
+                        raise transformed from inner_result.error  # type: ignore[attr-defined]  # pyright: ignore[reportAttributeAccessIssue]
+                    raise transformed
+                msg = f"effect failed: {transformed}"
+                raise RuntimeError(msg)
             case TapError(inner_effect, f):
                 try:
                     return await _run_async(inner_effect, ctx, memo)
@@ -190,7 +188,7 @@ def _run_async[A, E](  # noqa: PLR0915
     return execute()
 
 
-def _run_sync_exit[A, E](  # noqa: PLR0911, PLR0912, PLR0915
+def _run_sync_exit[A, E](  # noqa: PLR0911, PLR0912
     effect: Effect[A, E, Any], ctx: Context[Any], memo: dict[int, Any]
 ) -> Exit[A, E]:
     match effect:
@@ -202,45 +200,35 @@ def _run_sync_exit[A, E](  # noqa: PLR0911, PLR0912, PLR0915
             return exit.fail(error)
         case Tap(inner_effect, f):
             inner_result = _run_sync_exit(inner_effect, ctx, memo)
-            match inner_result:
-                case exit.Success(value):
-                    _run_sync(f(value), ctx, memo)
-                    return exit.succeed(value)
-                case exit.Failure(error):
-                    return exit.fail(error)
+            if isinstance(inner_result, exit.Success):
+                _run_sync(f(inner_result.value), ctx, memo)
+                return exit.succeed(inner_result.value)
+            return exit.fail(inner_result.error)  # type: ignore[attr-defined]  # pyright: ignore[reportAttributeAccessIssue]
         case Map(inner_effect, f):
             inner_result = _run_sync_exit(inner_effect, ctx, memo)
-            match inner_result:
-                case exit.Success(value):
-                    return exit.succeed(f(value))
-                case exit.Failure(error):
-                    return exit.fail(error)
+            if isinstance(inner_result, exit.Success):
+                return exit.succeed(f(inner_result.value))
+            return exit.fail(inner_result.error)  # type: ignore[attr-defined]  # pyright: ignore[reportAttributeAccessIssue]
         case FlatMap(inner_effect, f):
             inner_result = _run_sync_exit(inner_effect, ctx, memo)
-            match inner_result:
-                case exit.Success(value):
-                    return _run_sync_exit(f(value), ctx, memo)
-                case exit.Failure(error):
-                    return exit.fail(error)
+            if isinstance(inner_result, exit.Success):
+                return _run_sync_exit(f(inner_result.value), ctx, memo)
+            return exit.fail(inner_result.error)  # type: ignore[attr-defined]  # pyright: ignore[reportAttributeAccessIssue]
         case Ignore(inner_effect):
             _run_sync_exit(inner_effect, ctx, memo)  # type: ignore[unreachable]
             return exit.succeed(cast(A, None))
         case MapError(inner_effect, f):
             inner_result = _run_sync_exit(inner_effect, ctx, memo)
-            match inner_result:
-                case exit.Success(value):
-                    return exit.succeed(value)
-                case exit.Failure(error):
-                    return exit.fail(f(cast(Any, error)))
+            if isinstance(inner_result, exit.Success):
+                return exit.succeed(inner_result.value)
+            return exit.fail(f(cast(Any, inner_result.error)))  # type: ignore[attr-defined]  # pyright: ignore[reportAttributeAccessIssue]
         case TapError(inner_effect, f):
             inner_result = _run_sync_exit(inner_effect, ctx, memo)
-            match inner_result:
-                case exit.Success(value):
-                    return exit.succeed(value)
-                case exit.Failure(error):
-                    with contextlib.suppress(BaseException):
-                        _run_sync(f(cast(Any, error)), ctx, memo)
-                    return exit.fail(error)
+            if isinstance(inner_result, exit.Success):
+                return exit.succeed(inner_result.value)
+            with contextlib.suppress(BaseException):
+                _run_sync(f(cast(Any, inner_result.error)), ctx, memo)  # type: ignore[attr-defined]  # pyright: ignore[reportAttributeAccessIssue]
+            return exit.fail(inner_result.error)  # type: ignore[attr-defined]  # pyright: ignore[reportAttributeAccessIssue]
         case Suspend(thunk):
             return _run_sync_exit(thunk(), ctx, memo)
         case TrySync(thunk):
@@ -256,12 +244,10 @@ def _run_sync_exit[A, E](  # noqa: PLR0911, PLR0912, PLR0915
             if layer_id in memo:
                 return exit.succeed(memo[layer_id])
             inner_result = _run_sync_exit(inner_effect, ctx, memo)
-            match inner_result:
-                case exit.Success(value):
-                    memo[layer_id] = value
-                    return exit.succeed(value)
-                case exit.Failure(error):
-                    return exit.fail(error)
+            if isinstance(inner_result, exit.Success):
+                memo[layer_id] = inner_result.value
+                return exit.succeed(inner_result.value)
+            return exit.fail(inner_result.error)  # type: ignore[attr-defined]  # pyright: ignore[reportAttributeAccessIssue]
         case Sleep(duration):
             time.sleep(duration.total_seconds())  # type: ignore[unreachable]
             return exit.succeed(cast(A, None))
@@ -269,21 +255,20 @@ def _run_sync_exit[A, E](  # noqa: PLR0911, PLR0912, PLR0915
             results = []
             for eff in effects:
                 inner: Exit[Any, Any] = _run_sync_exit(eff, ctx, memo)
-                match inner:
-                    case exit.Success(value):
-                        results.append(value)
-                    case exit.Failure(error):
-                        return exit.fail(error)  # type: ignore[return-value]
+                if isinstance(inner, exit.Success):
+                    results.append(inner.value)
+                else:
+                    return exit.fail(inner.error)  # type: ignore[attr-defined,return-value]
             return exit.succeed(cast(A, tuple(results)))
         case _:
             msg = f"Cannot run {type(effect).__name__} synchronously"
             raise RuntimeError(msg)
 
 
-def _run_async_exit[A, E](  # noqa: PLR0915
+def _run_async_exit[A, E](
     effect: Effect[A, E, Any], ctx: Context[Any], memo: dict[int, Any]
 ) -> Awaitable[Exit[A, E]]:
-    async def execute() -> Exit[A, E]:  # noqa: PLR0911, PLR0912, PLR0915
+    async def execute() -> Exit[A, E]:  # noqa: PLR0911, PLR0912
         match effect:
             case Succeed(value):
                 return exit.succeed(value)
@@ -295,45 +280,35 @@ def _run_async_exit[A, E](  # noqa: PLR0915
                 return exit.fail(error)
             case Tap(inner_effect, f):
                 inner_result = await _run_async_exit(inner_effect, ctx, memo)
-                match inner_result:
-                    case exit.Success(value):
-                        await _run_async(f(value), ctx, memo)
-                        return exit.succeed(value)
-                    case exit.Failure(error):
-                        return exit.fail(error)
+                if isinstance(inner_result, exit.Success):
+                    await _run_async(f(inner_result.value), ctx, memo)
+                    return exit.succeed(inner_result.value)
+                return exit.fail(inner_result.error)  # type: ignore[attr-defined]  # pyright: ignore[reportAttributeAccessIssue]
             case Map(inner_effect, f):
                 inner_result = await _run_async_exit(inner_effect, ctx, memo)
-                match inner_result:
-                    case exit.Success(value):
-                        return exit.succeed(f(value))
-                    case exit.Failure(error):
-                        return exit.fail(error)
+                if isinstance(inner_result, exit.Success):
+                    return exit.succeed(f(inner_result.value))
+                return exit.fail(inner_result.error)  # type: ignore[attr-defined]  # pyright: ignore[reportAttributeAccessIssue]
             case FlatMap(inner_effect, f):
                 inner_result = await _run_async_exit(inner_effect, ctx, memo)
-                match inner_result:
-                    case exit.Success(value):
-                        return await _run_async_exit(f(value), ctx, memo)
-                    case exit.Failure(error):
-                        return exit.fail(error)
+                if isinstance(inner_result, exit.Success):
+                    return await _run_async_exit(f(inner_result.value), ctx, memo)
+                return exit.fail(inner_result.error)  # type: ignore[attr-defined]  # pyright: ignore[reportAttributeAccessIssue]
             case Ignore(inner_effect):
                 await _run_async_exit(inner_effect, ctx, memo)  # type: ignore[unreachable]
                 return exit.succeed(cast(A, None))
             case MapError(inner_effect, f):
                 inner_result = await _run_async_exit(inner_effect, ctx, memo)
-                match inner_result:
-                    case exit.Success(value):
-                        return exit.succeed(value)
-                    case exit.Failure(error):
-                        return exit.fail(f(cast(Any, error)))
+                if isinstance(inner_result, exit.Success):
+                    return exit.succeed(inner_result.value)
+                return exit.fail(f(cast(Any, inner_result.error)))  # type: ignore[attr-defined]  # pyright: ignore[reportAttributeAccessIssue]
             case TapError(inner_effect, f):
                 inner_result = await _run_async_exit(inner_effect, ctx, memo)
-                match inner_result:
-                    case exit.Success(value):
-                        return exit.succeed(value)
-                    case exit.Failure(error):
-                        with contextlib.suppress(BaseException):
-                            await _run_async(f(cast(Any, error)), ctx, memo)
-                        return exit.fail(error)
+                if isinstance(inner_result, exit.Success):
+                    return exit.succeed(inner_result.value)
+                with contextlib.suppress(BaseException):
+                    await _run_async(f(cast(Any, inner_result.error)), ctx, memo)  # type: ignore[attr-defined]  # pyright: ignore[reportAttributeAccessIssue]
+                return exit.fail(inner_result.error)  # type: ignore[attr-defined]  # pyright: ignore[reportAttributeAccessIssue]
             case Suspend(thunk):
                 return await _run_async_exit(thunk(), ctx, memo)
             case TrySync(thunk):
@@ -354,12 +329,10 @@ def _run_async_exit[A, E](  # noqa: PLR0915
                 if layer_id in memo:
                     return exit.succeed(memo[layer_id])
                 inner_result = await _run_async_exit(inner_effect, ctx, memo)
-                match inner_result:
-                    case exit.Success(value):
-                        memo[layer_id] = value
-                        return exit.succeed(value)
-                    case exit.Failure(error):
-                        return exit.fail(error)
+                if isinstance(inner_result, exit.Success):
+                    memo[layer_id] = inner_result.value
+                    return exit.succeed(inner_result.value)
+                return exit.fail(inner_result.error)  # type: ignore[attr-defined]  # pyright: ignore[reportAttributeAccessIssue]
             case Sleep(duration):
                 await asyncio.sleep(duration.total_seconds())  # type: ignore[unreachable]
                 return exit.succeed(cast(A, None))

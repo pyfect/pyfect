@@ -31,3 +31,10 @@ def test_from_optional_zero_is_some() -> None:
 def test_from_optional_empty_string_is_some() -> None:
     result = option.from_optional("")
     assert option.is_some(result)
+
+
+def test_from_optional_narrows_type_for_none() -> None:
+    """from_optional should narrow return type to Nothing when input is None."""
+    # When we know it's None, result type should be Nothing, not Option
+    result = option.from_optional(None)
+    assert result is option.NOTHING

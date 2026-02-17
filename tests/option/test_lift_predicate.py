@@ -23,7 +23,9 @@ def test_lift_predicate_fails_returns_nothing() -> None:
 
 
 def test_lift_predicate_equivalent_to_filter_some() -> None:
-    predicate = lambda x: x > 0  # noqa: E731
+    def predicate(n: int) -> bool:
+        return n > 0
+
     value = 42
 
     from_lift = option.lift_predicate(predicate)(value)
@@ -33,5 +35,8 @@ def test_lift_predicate_equivalent_to_filter_some() -> None:
 
 
 def test_lift_predicate_returns_singleton_on_failure() -> None:
-    result = option.lift_predicate(lambda _: False)(42)
+    def always_false(_: int) -> bool:
+        return False
+
+    result = option.lift_predicate(always_false)(42)
     assert result is option.NOTHING
