@@ -198,3 +198,20 @@ async def test_loop_async_discard() -> None:
     )
     assert await effect.run_async(result) is None
     assert executed == [1, 2, 3]
+
+
+def test_loop_with_tuple_state() -> None:
+    """loop should handle tuple state with mixed literals."""
+    result = effect.loop(
+        (5, 1),  # (counter, accumulator)
+        while_=lambda state: state[0] > 0,
+        step=lambda state: (state[0] - 1, state[1] * state[0]),
+        body=effect.succeed,
+    )
+
+    final = effect.run_sync(result)
+    # Should collect all states where condition is true
+    assert len(final) == 5  # noqa: PLR2004
+    assert final[-1] == (1, 120)  # Last state where counter > 0
+    # Final accumulator value is in the tuple
+    assert final[-1][1] == 120  # noqa: PLR2004

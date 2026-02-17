@@ -4,7 +4,7 @@ Control flow combinators for Effect.
 Provides if_, when, when_effect, unless, unless_effect, and zip.
 """
 
-from collections.abc import Callable
+from collections.abc import Callable, Iterable
 from typing import Any, Literal, Never, Protocol, cast, overload
 
 import pyfect.option as option_module
@@ -663,10 +663,130 @@ def loop(
     return Suspend(lambda: _run_collect(initial))
 
 
+# ============================================================================
+# for_each
+# ============================================================================
+
+
+@overload
+def for_each[A, B, E, R](
+    iterable: Iterable[A],
+    body: Callable[[A, int], Effect[B, E, R]],
+    *,
+    discard: Literal[False] = ...,
+    concurrent: bool = ...,
+) -> Effect[list[B], E, R]: ...
+
+
+@overload
+def for_each[A, B, E, R](
+    iterable: Iterable[A],
+    body: Callable[[A, int], Effect[B, E, R]],
+    *,
+    discard: Literal[True],
+    concurrent: bool = ...,
+) -> Effect[None, E, R]: ...
+
+
+def for_each(
+    iterable: Iterable[Any],
+    body: Callable[[Any, int], Effect[Any, Any, Any]],
+    *,
+    discard: bool = False,
+    concurrent: bool = False,
+) -> Effect[Any, Any, Any]:
+    """
+    Execute an effectful operation for each element in an iterable.
+
+    Applies the provided body function to each element (with its index),
+    producing a new effect that returns a list of results. If any effect
+    fails, iteration stops immediately (short-circuiting) and the error
+    propagates.
+
+    By default, operations run sequentially. Pass concurrent=True to run
+    them concurrently (async runtime only).
+
+    Example (sequential, collecting):
+        ```python
+        from pyfect import effect
+
+        result = effect.for_each(
+            [1, 2, 3, 4, 5],
+            lambda n, i: effect.succeed(n * 2),
+        )
+        effect.run_sync(result)  # [2, 4, 6, 8, 10]
+        ```
+
+    Example (discarding results):
+        ```python
+        from pyfect import effect
+
+        result = effect.for_each(
+            [1, 2, 3],
+            lambda n, i: effect.sync(lambda: print(f"Index {i}: {n}")),
+            discard=True,
+        )
+        effect.run_sync(result)  # prints, returns None
+        ```
+
+    Example (concurrent):
+        ```python
+        from pyfect import effect
+        from datetime import timedelta
+
+        result = effect.for_each(
+            [1, 2, 3],
+            lambda n, i: effect.succeed(n * 2),
+            concurrent=True,
+        )
+        await effect.run_async(result)  # [2, 4, 6]
+        ```
+    """
+    items = list(iterable)
+
+    if concurrent:
+        # Create all effects upfront
+        effects = tuple(body(elem, idx) for idx, elem in enumerate(items))
+        if not effects:
+            return Succeed(None if discard else [])
+
+        zipped = cast(Effect[tuple[Any, ...], Any, Any], ZipPar(effects))
+        if discard:
+            return Map(zipped, lambda _: None)
+        return Map(zipped, list)
+
+    # Sequential execution
+    if discard:
+
+        def _run_discard(index: int) -> Effect[Any, Any, Any]:
+            if index >= len(items):
+                return cast(Effect[Any, Any, Any], Succeed(None))
+            return FlatMap(
+                body(items[index], index),
+                lambda _: Suspend(lambda: _run_discard(index + 1)),
+            )
+
+        return Suspend(lambda: _run_discard(0))
+
+    def _run_collect(index: int) -> Effect[Any, Any, Any]:
+        if index >= len(items):
+            return cast(Effect[Any, Any, Any], Succeed([]))
+        return FlatMap(
+            body(items[index], index),
+            lambda result: FlatMap(
+                Suspend(lambda: _run_collect(index + 1)),
+                lambda rest: Succeed([result, *rest]),
+            ),
+        )
+
+    return Suspend(lambda: _run_collect(0))
+
+
 __all__ = [
     "UnlessEffectCallable",
     "WhenCallable",
     "WhenEffectCallable",
+    "for_each",
     "if_",
     "loop",
     "unless",
