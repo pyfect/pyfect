@@ -129,7 +129,7 @@ def _run_sync_fiber[A, E](  # noqa: PLR0911, PLR0912, PLR0915
         case Service(tag):
             return exit.succeed(context_module.get(ctx, tag))
         case Provide(inner_effect, new_ctx):
-            return _run_sync_fiber(inner_effect, new_ctx, memo)
+            return _run_sync_fiber(inner_effect, context_module.merge(ctx, new_ctx), memo)
         case MemoizedEffect(inner_effect, layer_id):
             if layer_id in memo:
                 return exit.succeed(memo[layer_id])
@@ -222,7 +222,7 @@ async def _run_async_fiber[A, E](  # noqa: PLR0911, PLR0912, PLR0915
         case Service(tag):
             return exit.succeed(context_module.get(ctx, tag))
         case Provide(inner_effect, new_ctx):
-            return await _run_async_fiber(inner_effect, new_ctx, memo)
+            return await _run_async_fiber(inner_effect, context_module.merge(ctx, new_ctx), memo)
         case MemoizedEffect(inner_effect, layer_id):
             if layer_id in memo:
                 return exit.succeed(memo[layer_id])

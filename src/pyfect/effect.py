@@ -35,6 +35,7 @@ from pyfect.control import (
 from pyfect.exit import Exit, Failure, Success
 from pyfect.layer import Layer
 from pyfect.primitives import (
+    Absorb,
     Async,
     Effect,
     Fail,
@@ -364,6 +365,63 @@ def from_either[R, L](e: either_module.Either[R, L]) -> Effect[R, L]:
             raise AssertionError(msg)
 
 
+def option[A, E, R](eff: Effect[A, E, R]) -> Effect[option_module.Option[A], Never, R]:
+    """
+    Absorb failures into the success channel as Option values.
+
+    Transforms Effect[A, E, R] into Effect[Option[A], Never, R].
+    A successful effect wraps its value in Some; a failed effect maps to
+    Nothing (the error is discarded). The resulting effect can never fail.
+
+    Example:
+        ```python
+        from pyfect import effect
+
+        effect.run_sync(effect.option(effect.succeed(42)))   # Some(value=42)
+        effect.run_sync(effect.option(effect.fail("oops")))  # Nothing()
+        ```
+    """
+
+    def _to_option(e: either_module.Either[A, E]) -> option_module.Option[A]:
+        if isinstance(e, either_module.Right):
+            return option_module.Some(e.value)
+        return option_module.NOTHING
+
+    return Map(Absorb(eff), _to_option)
+
+
+def either[A, E, R](eff: Effect[A, E, R]) -> Effect[either_module.Either[A, E], Never, R]:
+    """
+    Absorb failures into the success channel as Either values.
+
+    Transforms Effect[A, E, R] into Effect[Either[A, E], Never, R].
+    A successful effect wraps its value in Right; a failed effect wraps its
+    error in Left. The resulting effect can never fail.
+
+    Use this to handle both success and failure within a pipeline, for
+    example by following up with map_ and either.match_.
+
+    Example:
+        ```python
+        from pyfect import effect, either, pipe
+
+        program = effect.fail("oops")  # Effect[Never, str, Never]
+
+        recovered = pipe(
+            program,
+            effect.either,              # Effect[Either[Never, str], Never, Never]
+            effect.map_(either.match_(
+                on_left=lambda e: f"Recovered: {e}",
+                on_right=lambda v: str(v),
+            )),
+        )
+
+        result = effect.run_sync(recovered)  # "Recovered: oops"
+        ```
+    """
+    return Absorb(eff)
+
+
 class DelayCallable(Protocol):
     def __call__[A, E, R](self, eff: Effect[A, E, R]) -> Effect[A, E, R]: ...
 
@@ -451,6 +509,8 @@ def provide[R, E2 = Never](  # type: ignore[misc]
 # Re-export combinators
 from pyfect.combinators import (  # noqa: E402
     AsCallable,
+    CatchAllCallable,
+    CatchSomeCallable,
     FlatMapCallable,
     IgnoreCallable,
     MapCallable,
@@ -458,6 +518,8 @@ from pyfect.combinators import (  # noqa: E402
     TapCallable,
     TapErrorCallable,
     as_,
+    catch_all,
+    catch_some,
     flat_map,
     ignore,
     map_,
@@ -478,6 +540,8 @@ __all__ = [
     "AllMode",
     "AsCallable",
     "Async",
+    "CatchAllCallable",
+    "CatchSomeCallable",
     "DelayCallable",
     "Effect",
     "Exit",
@@ -513,7 +577,10 @@ __all__ = [
     "all_",
     "as_",
     "async_",
+    "catch_all",
+    "catch_some",
     "delay",
+    "either",
     "fail",
     "flat_map",
     "for_each",
@@ -524,6 +591,7 @@ __all__ = [
     "loop",
     "map_",
     "map_error",
+    "option",
     "provide",
     "run_async",
     "run_async_exit",
