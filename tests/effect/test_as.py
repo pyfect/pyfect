@@ -100,7 +100,7 @@ def test_as_after_map() -> None:
     """Test that as_ can replace a mapped value."""
     result = pipe(
         effect.succeed(10),
-        effect.map(lambda x: x * 2),  # 20
+        effect.map_(lambda x: x * 2),  # 20
         effect.as_("replaced"),  # Ignore the 20
     )
     assert effect.run_sync(result) == "replaced"
@@ -111,7 +111,7 @@ def test_map_after_as() -> None:
     result = pipe(
         effect.succeed(999),
         effect.as_(10),  # Replace with 10
-        effect.map(lambda x: x * 2),  # Transform the 10
+        effect.map_(lambda x: x * 2),  # Transform the 10
     )
     assert effect.run_sync(result) == 20  # noqa: PLR2004
 

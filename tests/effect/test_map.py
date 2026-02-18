@@ -14,7 +14,7 @@ def test_map_succeed() -> None:
     def double(x: int) -> int:
         return x * 2
 
-    mapped = effect.map(double)(eff)
+    mapped = effect.map_(double)(eff)
     result = effect.run_sync(mapped)
     assert result == 42  # noqa: PLR2004
 
@@ -23,8 +23,8 @@ def test_map_with_pipe() -> None:
     """Test that map works with pipe for composition."""
     result = pipe(
         effect.succeed(10),
-        effect.map(lambda x: x + 5),
-        effect.map(lambda x: x * 2),
+        effect.map_(lambda x: x + 5),
+        effect.map_(lambda x: x * 2),
     )
     assert effect.run_sync(result) == 30  # noqa: PLR2004
 
@@ -36,7 +36,7 @@ def test_map_sync_effect() -> None:
     def double(x: int) -> int:
         return x * 2
 
-    mapped = effect.map(double)(eff)
+    mapped = effect.map_(double)(eff)
     result = effect.run_sync(mapped)
     assert result == 42  # noqa: PLR2004
 
@@ -53,7 +53,7 @@ async def test_map_async_effect() -> None:
     def double(x: int) -> int:
         return x * 2
 
-    mapped = effect.map(double)(eff)
+    mapped = effect.map_(double)(eff)
     result = await effect.run_async(mapped)
     assert result == 42  # noqa: PLR2004
 
@@ -65,7 +65,7 @@ def test_map_preserves_errors() -> None:
     def double(x: int) -> int:
         return x * 2
 
-    mapped = effect.map(double)(eff)
+    mapped = effect.map_(double)(eff)
 
     with pytest.raises(ValueError, match="oops"):
         effect.run_sync(mapped)
@@ -78,7 +78,7 @@ def test_map_preserves_errors_with_exit() -> None:
     def double(x: int) -> int:
         return x * 2
 
-    mapped = effect.map(double)(eff)
+    mapped = effect.map_(double)(eff)
     result = effect.run_sync_exit(mapped)
 
     match result:
@@ -95,7 +95,7 @@ async def test_map_preserves_errors_async_exit() -> None:
     def double(x: int) -> int:
         return x * 2
 
-    mapped = effect.map(double)(eff)
+    mapped = effect.map_(double)(eff)
     result = await effect.run_async_exit(mapped)
 
     match result:
@@ -109,9 +109,9 @@ def test_map_composition() -> None:
     """Test composing multiple map operations."""
     result = pipe(
         effect.succeed(5),
-        effect.map(lambda x: x + 3),  # 8
-        effect.map(lambda x: x * 2),  # 16
-        effect.map(lambda x: x - 6),  # 10
+        effect.map_(lambda x: x + 3),  # 8
+        effect.map_(lambda x: x * 2),  # 16
+        effect.map_(lambda x: x - 6),  # 10
     )
     assert effect.run_sync(result) == 10  # noqa: PLR2004
 
@@ -123,7 +123,7 @@ def test_map_with_type_transformation() -> None:
     def to_str(x: int) -> str:
         return str(x)
 
-    mapped = effect.map(to_str)(eff)
+    mapped = effect.map_(to_str)(eff)
     result = effect.run_sync(mapped)
     assert result == "42"
     assert isinstance(result, str)
@@ -136,7 +136,7 @@ def test_map_with_complex_transformation() -> None:
         return {"value": x, "doubled": x * 2}
 
     eff = effect.succeed(21)
-    mapped = effect.map(transform)(eff)
+    mapped = effect.map_(transform)(eff)
     result = effect.run_sync(mapped)
 
     assert result == {"value": 21, "doubled": 42}
@@ -151,7 +151,7 @@ def test_map_is_lazy() -> None:
         return x * 2
 
     eff = effect.succeed(21)
-    mapped = effect.map(track_execution)(eff)
+    mapped = effect.map_(track_execution)(eff)
 
     # Map is created but not executed
     assert len(executed) == 0
@@ -169,7 +169,7 @@ def test_map_with_try_sync() -> None:
     def double(x: int) -> int:
         return x * 2
 
-    mapped = effect.map(double)(eff)
+    mapped = effect.map_(double)(eff)
     result = effect.run_sync_exit(mapped)
 
     match result:
@@ -191,7 +191,7 @@ def test_map_with_try_sync_that_fails() -> None:
     def double(x: int) -> int:
         return x * 2
 
-    mapped = effect.map(double)(eff)
+    mapped = effect.map_(double)(eff)
     result = effect.run_sync_exit(mapped)
 
     match result:
@@ -214,7 +214,7 @@ async def test_map_with_try_async() -> None:
     def double(x: int) -> int:
         return x * 2
 
-    mapped = effect.map(double)(eff)
+    mapped = effect.map_(double)(eff)
     result = await effect.run_async_exit(mapped)
 
     match result:
@@ -231,7 +231,7 @@ def test_map_after_tap() -> None:
     result = pipe(
         effect.succeed(10),
         effect.tap(lambda x: effect.sync(lambda: tapped_values.append(x))),
-        effect.map(lambda x: x * 2),
+        effect.map_(lambda x: x * 2),
     )
 
     final = effect.run_sync(result)
@@ -245,7 +245,7 @@ def test_tap_after_map() -> None:
 
     result = pipe(
         effect.succeed(10),
-        effect.map(lambda x: x * 2),
+        effect.map_(lambda x: x * 2),
         effect.tap(lambda x: effect.sync(lambda: tapped_values.append(x))),
     )
 

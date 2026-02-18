@@ -36,12 +36,12 @@ def test_diamond_dependency_constructs_shared_layer_once() -> None:
     config_layer = layer.sync(Config, make_config)
 
     logger_layer = pipe(
-        layer.effect(Logger, pipe(effect.service(Config), effect.map(lambda c: Logger(c.level)))),
+        layer.effect(Logger, pipe(effect.service(Config), effect.map_(lambda c: Logger(c.level)))),
         layer.provide(config_layer),
     )
     db_layer = pipe(
         layer.effect(
-            Database, pipe(effect.service(Config), effect.map(lambda c: Database(c.level)))
+            Database, pipe(effect.service(Config), effect.map_(lambda c: Database(c.level)))
         ),
         layer.provide(config_layer),
     )
@@ -69,12 +69,12 @@ async def test_diamond_dependency_constructs_shared_layer_once_async() -> None:
     config_layer = layer.sync(Config, make_config)
 
     logger_layer = pipe(
-        layer.effect(Logger, pipe(effect.service(Config), effect.map(lambda c: Logger(c.level)))),
+        layer.effect(Logger, pipe(effect.service(Config), effect.map_(lambda c: Logger(c.level)))),
         layer.provide(config_layer),
     )
     db_layer = pipe(
         layer.effect(
-            Database, pipe(effect.service(Config), effect.map(lambda c: Database(c.level)))
+            Database, pipe(effect.service(Config), effect.map_(lambda c: Database(c.level)))
         ),
         layer.provide(config_layer),
     )
@@ -146,12 +146,12 @@ def test_fresh_opts_out_of_memoization() -> None:
     base = layer.sync(Config, make_config)
 
     logger_layer = pipe(
-        layer.effect(Logger, pipe(effect.service(Config), effect.map(lambda c: Logger(c.level)))),
+        layer.effect(Logger, pipe(effect.service(Config), effect.map_(lambda c: Logger(c.level)))),
         layer.provide(layer.fresh(base)),
     )
     db_layer = pipe(
         layer.effect(
-            Database, pipe(effect.service(Config), effect.map(lambda c: Database(c.level)))
+            Database, pipe(effect.service(Config), effect.map_(lambda c: Database(c.level)))
         ),
         layer.provide(layer.fresh(base)),
     )
@@ -179,12 +179,12 @@ async def test_fresh_opts_out_of_memoization_async() -> None:
     base = layer.sync(Config, make_config)
 
     logger_layer = pipe(
-        layer.effect(Logger, pipe(effect.service(Config), effect.map(lambda c: Logger(c.level)))),
+        layer.effect(Logger, pipe(effect.service(Config), effect.map_(lambda c: Logger(c.level)))),
         layer.provide(layer.fresh(base)),
     )
     db_layer = pipe(
         layer.effect(
-            Database, pipe(effect.service(Config), effect.map(lambda c: Database(c.level)))
+            Database, pipe(effect.service(Config), effect.map_(lambda c: Database(c.level)))
         ),
         layer.provide(layer.fresh(base)),
     )
@@ -219,12 +219,12 @@ def test_memoized_value_is_the_same_instance() -> None:
     config_layer = layer.sync(Config, lambda: Config("INFO"))
 
     _logger_layer = pipe(
-        layer.effect(Logger, pipe(effect.service(Config), effect.map(lambda c: Logger(c.level)))),
+        layer.effect(Logger, pipe(effect.service(Config), effect.map_(lambda c: Logger(c.level)))),
         layer.provide(config_layer),
     )
     _db_layer = pipe(
         layer.effect(
-            Database, pipe(effect.service(Config), effect.map(lambda c: Database(c.level)))
+            Database, pipe(effect.service(Config), effect.map_(lambda c: Database(c.level)))
         ),
         layer.provide(config_layer),
     )
@@ -240,7 +240,7 @@ def test_memoized_value_is_the_same_instance() -> None:
             Logger,
             pipe(
                 effect.service(Config),
-                effect.map(lambda c: (capture_config(c), Logger(c.level))[1]),
+                effect.map_(lambda c: (capture_config(c), Logger(c.level))[1]),
             ),
         ),
         layer.provide(config_layer),
@@ -250,7 +250,7 @@ def test_memoized_value_is_the_same_instance() -> None:
             Database,
             pipe(
                 effect.service(Config),
-                effect.map(lambda c: (capture_config(c), Database(c.level))[1]),
+                effect.map_(lambda c: (capture_config(c), Database(c.level))[1]),
             ),
         ),
         layer.provide(config_layer),
@@ -284,12 +284,12 @@ def test_run_sync_exit_memoizes_shared_layer() -> None:
     config_layer = layer.sync(Config, make_config)
 
     logger_layer = pipe(
-        layer.effect(Logger, pipe(effect.service(Config), effect.map(lambda c: Logger(c.level)))),
+        layer.effect(Logger, pipe(effect.service(Config), effect.map_(lambda c: Logger(c.level)))),
         layer.provide(config_layer),
     )
     db_layer = pipe(
         layer.effect(
-            Database, pipe(effect.service(Config), effect.map(lambda c: Database(c.level)))
+            Database, pipe(effect.service(Config), effect.map_(lambda c: Database(c.level)))
         ),
         layer.provide(config_layer),
     )
@@ -337,12 +337,12 @@ async def test_run_async_exit_memoizes_shared_layer() -> None:
     config_layer = layer.sync(Config, make_config)
 
     logger_layer = pipe(
-        layer.effect(Logger, pipe(effect.service(Config), effect.map(lambda c: Logger(c.level)))),
+        layer.effect(Logger, pipe(effect.service(Config), effect.map_(lambda c: Logger(c.level)))),
         layer.provide(config_layer),
     )
     db_layer = pipe(
         layer.effect(
-            Database, pipe(effect.service(Config), effect.map(lambda c: Database(c.level)))
+            Database, pipe(effect.service(Config), effect.map_(lambda c: Database(c.level)))
         ),
         layer.provide(config_layer),
     )

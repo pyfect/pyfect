@@ -56,7 +56,7 @@ def test_succeed_with_pipe_effect_chain() -> None:
 
     eff = pipe(
         effect.service(Database),
-        effect.map(lambda d: d.url),
+        effect.map_(lambda d: d.url),
         effect.provide(db_layer),
     )
 

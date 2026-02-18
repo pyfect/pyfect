@@ -195,7 +195,7 @@ def test_ignore_with_map_before() -> None:
     """Test ignore after map."""
     result = pipe(
         effect.succeed(10),
-        effect.map(lambda x: x * 2),
+        effect.map_(lambda x: x * 2),
         effect.ignore(),
     )
     assert effect.run_sync(result) is None
@@ -216,7 +216,7 @@ def test_ignore_doesnt_prevent_chaining() -> None:
     result = pipe(
         effect.succeed(42),
         effect.ignore(),  # Returns None
-        effect.map(lambda _: "after ignore"),
+        effect.map_(lambda _: "after ignore"),
     )
     assert effect.run_sync(result) == "after ignore"
 

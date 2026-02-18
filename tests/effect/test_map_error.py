@@ -175,7 +175,7 @@ def test_map_error_with_map() -> None:
     """Test map_error works alongside map."""
     result = pipe(
         effect.succeed(10),
-        effect.map(lambda x: x * 2),  # 20
+        effect.map_(lambda x: x * 2),  # 20
         effect.map_error(lambda e: f"Error: {e}"),
     )
 
@@ -197,7 +197,7 @@ def test_map_and_map_error_on_failure() -> None:
 
     result = pipe(
         effect.fail("oops"),
-        effect.map(track_map),
+        effect.map_(track_map),
         effect.map_error(track_map_error),
     )
 

@@ -89,8 +89,8 @@ def test_match_in_pipeline() -> None:
     """match_ should work seamlessly in pipelines."""
     result = pipe(
         either.right(10),
-        either.map(lambda n: n * 2),
-        either.map(lambda n: n + 1),
+        either.map_(lambda n: n * 2),
+        either.map_(lambda n: n + 1),
         either.match_(
             on_left=lambda _: 0,
             on_right=lambda n: n,

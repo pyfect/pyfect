@@ -171,7 +171,7 @@ def flat_map[A, B, E2 = Never, R2 = Never](
     return cast(FlatMapCallable[A, B, E2, R2], _apply)
 
 
-def map[A, B](
+def map_[A, B](
     f: Callable[[A], B],
 ) -> MapCallable[A, B]:
     """
@@ -327,7 +327,7 @@ __all__ = [
     "as_",
     "flat_map",
     "ignore",
-    "map",
+    "map_",
     "map_error",
     "tap",
     "tap_error",

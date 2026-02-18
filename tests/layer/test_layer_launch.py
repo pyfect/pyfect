@@ -67,7 +67,7 @@ def test_launch_with_provided_dependencies() -> None:
     server_layer = pipe(
         layer.effect(
             HTTPServer,
-            pipe(effect.service(Config), effect.map(start)),
+            pipe(effect.service(Config), effect.map_(start)),
         ),
         layer.provide(layer.succeed(Config, Config(8080))),
     )

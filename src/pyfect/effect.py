@@ -15,9 +15,11 @@ import pyfect.option as option_module
 # Re-export Effect primitives from primitives module
 from pyfect.context import Context
 from pyfect.control import (
+    AllMode,
     UnlessEffectCallable,
     WhenCallable,
     WhenEffectCallable,
+    all_,
     for_each,
     if_,
     loop,
@@ -25,7 +27,7 @@ from pyfect.control import (
     unless_effect,
     when,
     when_effect,
-    zip,
+    zip_,
     zip_with,
 )
 
@@ -458,7 +460,7 @@ from pyfect.combinators import (  # noqa: E402
     as_,
     flat_map,
     ignore,
-    map,
+    map_,
     map_error,
     tap,
     tap_error,
@@ -473,6 +475,7 @@ from pyfect.runtime import (  # noqa: E402
 )
 
 __all__ = [
+    "AllMode",
     "AsCallable",
     "Async",
     "DelayCallable",
@@ -507,6 +510,7 @@ __all__ = [
     "UnlessEffectCallable",
     "WhenCallable",
     "WhenEffectCallable",
+    "all_",
     "as_",
     "async_",
     "delay",
@@ -518,7 +522,7 @@ __all__ = [
     "if_",
     "ignore",
     "loop",
-    "map",
+    "map_",
     "map_error",
     "provide",
     "run_async",
@@ -537,6 +541,6 @@ __all__ = [
     "unless_effect",
     "when",
     "when_effect",
-    "zip",
+    "zip_",
     "zip_with",
 ]

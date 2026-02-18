@@ -210,7 +210,7 @@ def match_[R, L, B, C](
 # ============================================================================
 
 
-def map[R, R2, L](f: Callable[[R], R2]) -> Callable[[Either[R, L]], Either[R2, L]]:
+def map_[R, R2, L](f: Callable[[R], R2]) -> Callable[[Either[R, L]], Either[R2, L]]:
     """
     Transform the Right value of an Either.
 
@@ -218,8 +218,8 @@ def map[R, R2, L](f: Callable[[R], R2]) -> Callable[[Either[R, L]], Either[R2, L
 
     Example:
         ```python
-        pipe(right(1), map(lambda x: x + 1))     # Right(value=2)
-        pipe(left("oops"), map(lambda x: x + 1)) # Left(value='oops')
+        pipe(right(1), map_(lambda x: x + 1))     # Right(value=2)
+        pipe(left("oops"), map_(lambda x: x + 1)) # Left(value='oops')
         ```
     """
 
@@ -378,14 +378,14 @@ def zip_with[R1, R2, R3, L1, L2](
 
 
 @overload
-def all[R, L](eithers: list[Either[R, L]]) -> Either[list[R], L]: ...
+def all_[R, L](eithers: list[Either[R, L]]) -> Either[list[R], L]: ...
 
 
 @overload
-def all[K, R, L](eithers: dict[K, Either[R, L]]) -> Either[dict[K, R], L]: ...
+def all_[K, R, L](eithers: dict[K, Either[R, L]]) -> Either[dict[K, R], L]: ...
 
 
-def all[R, L, K](
+def all_[R, L, K](
     eithers: list[Either[R, L]] | dict[K, Either[R, L]],
 ) -> Either[list[R], L] | Either[dict[K, R], L]:
     """
@@ -394,23 +394,13 @@ def all[R, L, K](
     If all elements are Right, returns Right containing the collected values.
     If any element is Left, returns the first Left encountered.
 
-    Note:
-        For heterogeneous collections (elements with different Right types),
-        the type checker will not infer the correct type automatically. You
-        should provide an explicit type annotation and suppress the error:
-
-        ```python
-        eithers: list[Either[int | str, SomeError]] = [right(1), right("hello")]
-        result: Either[list[int | str], SomeError] = all(eithers)  # type: ignore[arg-type]
-        ```
-
     Example:
         ```python
-        all([right("John"), right(25)])
+        all_([right("John"), right(25)])
         # Right(value=['John', 25])
-        all({"name": right("John"), "age": right(25)})
+        all_({"name": right("John"), "age": right(25)})
         # Right(value={'name': 'John', 'age': 25})
-        all([right(1), left("oops"), right(3)])
+        all_([right(1), left("oops"), right(3)])
         # Left(value='oops')
         ```
     """
@@ -436,12 +426,12 @@ __all__ = [
     "Either",
     "Left",
     "Right",
-    "all",
+    "all_",
     "flat_map",
     "is_left",
     "is_right",
     "left",
-    "map",
+    "map_",
     "map_both",
     "map_left",
     "match_",

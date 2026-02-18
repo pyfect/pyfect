@@ -10,6 +10,8 @@ from dataclasses import dataclass
 from datetime import timedelta
 from typing import TYPE_CHECKING, Any, Never
 
+from pyfect.either import Either
+
 if TYPE_CHECKING:
     from pyfect.context import Context
 
@@ -131,6 +133,18 @@ class MapError[A, E, E2, R = Never](Effect[A, E2, R]):
 
 
 @dataclass(frozen=True)
+class Absorb[A, E = Never, R = Never](Effect[Either[A, E], Never, R]):
+    """An effect that absorbs failures into the success channel as Either values.
+
+    Converts Effect[A, E, R] into Effect[Either[A, E], Never, R]. A successful
+    effect wraps its value in Right; a failed effect wraps its error in Left,
+    turning the failure into a success value that never propagates.
+    """
+
+    effect: "Effect[A, E, R]"
+
+
+@dataclass(frozen=True)
 class Service[S](Effect[S, Never, S]):
     """An effect that looks up a service from the context."""
 
@@ -172,6 +186,7 @@ class ZipPar[A = Never, E = Never, R = Never](Effect[A, E, R]):
 
 
 __all__ = [
+    "Absorb",
     "Async",
     "Effect",
     "Fail",

@@ -26,7 +26,7 @@ def test_provide_satisfies_single_dependency() -> None:
 
     logger_layer = layer.effect(
         Logger,
-        pipe(effect.service(Config), effect.map(lambda c: Logger(c.level))),
+        pipe(effect.service(Config), effect.map_(lambda c: Logger(c.level))),
     )
 
     config_layer = layer.succeed(Config, config)
@@ -51,14 +51,14 @@ def test_provide_chains_two_dependencies() -> None:
 
     logger_layer = layer.effect(
         Logger,
-        pipe(effect.service(Config), effect.map(lambda c: Logger(c.level))),
+        pipe(effect.service(Config), effect.map_(lambda c: Logger(c.level))),
     )
 
     database_layer = layer.effect(
         Database,
         pipe(
             effect.service(Logger),
-            effect.map(lambda l: Database(f"postgres://{l.level}")),  # noqa: E741
+            effect.map_(lambda l: Database(f"postgres://{l.level}")),  # noqa: E741
         ),
     )
 
@@ -87,7 +87,7 @@ def test_provide_propagates_construction_failure() -> None:
 
     logger_layer = layer.effect(
         Logger,
-        pipe(effect.service(Config), effect.map(lambda c: Logger(c.level))),
+        pipe(effect.service(Config), effect.map_(lambda c: Logger(c.level))),
     )
 
     failing_config_layer = layer.effect(Config, effect.fail(BuildError("no config")))
@@ -115,7 +115,7 @@ def test_provide_with_merged_outer_layer() -> None:
         Database,
         pipe(
             effect.service(Config, Logger),
-            effect.map(lambda c_l: Database(f"{c_l[0].level}-{c_l[1].level}")),
+            effect.map_(lambda c_l: Database(f"{c_l[0].level}-{c_l[1].level}")),
         ),
     )
 
@@ -140,7 +140,7 @@ async def test_provide_async() -> None:
 
     logger_layer = layer.effect(
         Logger,
-        pipe(effect.service(Config), effect.map(lambda c: Logger(c.level))),
+        pipe(effect.service(Config), effect.map_(lambda c: Logger(c.level))),
     )
 
     app_layer = pipe(

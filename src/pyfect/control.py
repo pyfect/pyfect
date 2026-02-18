@@ -5,10 +5,12 @@ Provides if_, when, when_effect, unless, unless_effect, and zip.
 """
 
 from collections.abc import Callable, Iterable
+from enum import StrEnum
 from typing import Any, Literal, Never, Protocol, cast, overload
 
+import pyfect.either as either_module
 import pyfect.option as option_module
-from pyfect.primitives import Effect, FlatMap, Map, Succeed, Suspend, ZipPar
+from pyfect.primitives import Absorb, Effect, Fail, FlatMap, Map, Succeed, Suspend, ZipPar
 
 # ============================================================================
 # if_
@@ -268,7 +270,7 @@ def unless_effect[E2 = Never, R2 = Never](
 
 
 @overload
-def zip[A, B](  # pyright: ignore[reportOverlappingOverload]
+def zip_[A, B](  # pyright: ignore[reportOverlappingOverload]
     eff1: Effect[A, Never, Never],
     eff2: Effect[B, Never, Never],
     *,
@@ -277,7 +279,7 @@ def zip[A, B](  # pyright: ignore[reportOverlappingOverload]
 
 
 @overload
-def zip[A, B, E1, E2](  # type: ignore[overload-overlap]
+def zip_[A, B, E1, E2](  # type: ignore[overload-overlap]
     eff1: Effect[A, E1, Never],
     eff2: Effect[B, E2, Never],
     *,
@@ -286,7 +288,7 @@ def zip[A, B, E1, E2](  # type: ignore[overload-overlap]
 
 
 @overload
-def zip[A, B, R1, R2](  # pyright: ignore[reportOverlappingOverload]
+def zip_[A, B, R1, R2](  # pyright: ignore[reportOverlappingOverload]
     eff1: Effect[A, Never, R1],
     eff2: Effect[B, Never, R2],
     *,
@@ -295,7 +297,7 @@ def zip[A, B, R1, R2](  # pyright: ignore[reportOverlappingOverload]
 
 
 @overload
-def zip[A, B, E1, E2, R1, R2](
+def zip_[A, B, E1, E2, R1, R2](
     eff1: Effect[A, E1, R1],
     eff2: Effect[B, E2, R2],
     *,
@@ -304,7 +306,7 @@ def zip[A, B, E1, E2, R1, R2](
 
 
 @overload
-def zip[A, B, C](  # pyright: ignore[reportOverlappingOverload]
+def zip_[A, B, C](  # pyright: ignore[reportOverlappingOverload]
     eff1: Effect[A, Never, Never],
     eff2: Effect[B, Never, Never],
     eff3: Effect[C, Never, Never],
@@ -314,7 +316,7 @@ def zip[A, B, C](  # pyright: ignore[reportOverlappingOverload]
 
 
 @overload
-def zip[A, B, C, E1, E2, E3](  # type: ignore[overload-overlap]
+def zip_[A, B, C, E1, E2, E3](  # type: ignore[overload-overlap]
     eff1: Effect[A, E1, Never],
     eff2: Effect[B, E2, Never],
     eff3: Effect[C, E3, Never],
@@ -324,7 +326,7 @@ def zip[A, B, C, E1, E2, E3](  # type: ignore[overload-overlap]
 
 
 @overload
-def zip[A, B, C, R1, R2, R3](  # pyright: ignore[reportOverlappingOverload]
+def zip_[A, B, C, R1, R2, R3](  # pyright: ignore[reportOverlappingOverload]
     eff1: Effect[A, Never, R1],
     eff2: Effect[B, Never, R2],
     eff3: Effect[C, Never, R3],
@@ -334,7 +336,7 @@ def zip[A, B, C, R1, R2, R3](  # pyright: ignore[reportOverlappingOverload]
 
 
 @overload
-def zip[A, B, C, E1, E2, E3, R1, R2, R3](
+def zip_[A, B, C, E1, E2, E3, R1, R2, R3](
     eff1: Effect[A, E1, R1],
     eff2: Effect[B, E2, R2],
     eff3: Effect[C, E3, R3],
@@ -344,7 +346,7 @@ def zip[A, B, C, E1, E2, E3, R1, R2, R3](
 
 
 @overload
-def zip[A, B, C, D](  # pyright: ignore[reportOverlappingOverload]
+def zip_[A, B, C, D](  # pyright: ignore[reportOverlappingOverload]
     eff1: Effect[A, Never, Never],
     eff2: Effect[B, Never, Never],
     eff3: Effect[C, Never, Never],
@@ -355,7 +357,7 @@ def zip[A, B, C, D](  # pyright: ignore[reportOverlappingOverload]
 
 
 @overload
-def zip[A, B, C, D, E1, E2, E3, E4](  # type: ignore[overload-overlap]
+def zip_[A, B, C, D, E1, E2, E3, E4](  # type: ignore[overload-overlap]
     eff1: Effect[A, E1, Never],
     eff2: Effect[B, E2, Never],
     eff3: Effect[C, E3, Never],
@@ -366,7 +368,7 @@ def zip[A, B, C, D, E1, E2, E3, E4](  # type: ignore[overload-overlap]
 
 
 @overload
-def zip[A, B, C, D, R1, R2, R3, R4](  # pyright: ignore[reportOverlappingOverload]
+def zip_[A, B, C, D, R1, R2, R3, R4](  # pyright: ignore[reportOverlappingOverload]
     eff1: Effect[A, Never, R1],
     eff2: Effect[B, Never, R2],
     eff3: Effect[C, Never, R3],
@@ -377,7 +379,7 @@ def zip[A, B, C, D, R1, R2, R3, R4](  # pyright: ignore[reportOverlappingOverloa
 
 
 @overload
-def zip[A, B, C, D, E1, E2, E3, E4, R1, R2, R3, R4](
+def zip_[A, B, C, D, E1, E2, E3, E4, R1, R2, R3, R4](
     eff1: Effect[A, E1, R1],
     eff2: Effect[B, E2, R2],
     eff3: Effect[C, E3, R3],
@@ -388,7 +390,7 @@ def zip[A, B, C, D, E1, E2, E3, E4, R1, R2, R3, R4](
 
 
 @overload
-def zip[A, B, C, D, F](  # pyright: ignore[reportOverlappingOverload]
+def zip_[A, B, C, D, F](  # pyright: ignore[reportOverlappingOverload]
     eff1: Effect[A, Never, Never],
     eff2: Effect[B, Never, Never],
     eff3: Effect[C, Never, Never],
@@ -400,7 +402,7 @@ def zip[A, B, C, D, F](  # pyright: ignore[reportOverlappingOverload]
 
 
 @overload
-def zip[A, B, C, D, F, E1, E2, E3, E4, E5](  # type: ignore[overload-overlap]
+def zip_[A, B, C, D, F, E1, E2, E3, E4, E5](  # type: ignore[overload-overlap]
     eff1: Effect[A, E1, Never],
     eff2: Effect[B, E2, Never],
     eff3: Effect[C, E3, Never],
@@ -412,7 +414,7 @@ def zip[A, B, C, D, F, E1, E2, E3, E4, E5](  # type: ignore[overload-overlap]
 
 
 @overload
-def zip[A, B, C, D, F, R1, R2, R3, R4, R5](  # pyright: ignore[reportOverlappingOverload]
+def zip_[A, B, C, D, F, R1, R2, R3, R4, R5](  # pyright: ignore[reportOverlappingOverload]
     eff1: Effect[A, Never, R1],
     eff2: Effect[B, Never, R2],
     eff3: Effect[C, Never, R3],
@@ -424,7 +426,7 @@ def zip[A, B, C, D, F, R1, R2, R3, R4, R5](  # pyright: ignore[reportOverlapping
 
 
 @overload
-def zip[A, B, C, D, F, E1, E2, E3, E4, E5, R1, R2, R3, R4, R5](
+def zip_[A, B, C, D, F, E1, E2, E3, E4, E5, R1, R2, R3, R4, R5](
     eff1: Effect[A, E1, R1],
     eff2: Effect[B, E2, R2],
     eff3: Effect[C, E3, R3],
@@ -435,7 +437,7 @@ def zip[A, B, C, D, F, E1, E2, E3, E4, E5, R1, R2, R3, R4, R5](
 ) -> Effect[tuple[A, B, C, D, F], E1 | E2 | E3 | E4 | E5, R1 | R2 | R3 | R4 | R5]: ...
 
 
-def zip(  # type: ignore[misc]
+def zip_(  # type: ignore[misc]
     *effects: Effect[Any, Any, Any],
     concurrent: bool = False,
 ) -> Effect[tuple[Any, ...], Any, Any]:
@@ -782,10 +784,229 @@ def for_each(
     return Suspend(lambda: _run_collect(0))
 
 
+# ============================================================================
+# all
+# ============================================================================
+
+
+class AllMode(StrEnum):
+    """Execution mode for effect.all.
+
+    DEFAULT  — short-circuit on the first failure, return collected values.
+    EITHER   — run all effects, wrap each result in Either (never fails).
+    VALIDATE — run all effects, fail with error structure if any failed.
+    """
+
+    DEFAULT = "default"
+    EITHER = "either"
+    VALIDATE = "validate"
+
+
+def _all_list_impl(
+    effects: list[Effect[Any, Any, Any]],
+    *,
+    mode: str,
+    concurrent: bool,
+) -> Effect[Any, Any, Any]:
+    if mode == AllMode.EITHER:
+        absorb = [cast(Effect[Any, Any, Any], Absorb(eff)) for eff in effects]
+        return for_each(absorb, lambda eff, _: eff, concurrent=concurrent)
+
+    if mode == AllMode.VALIDATE:
+        either_eff = _all_list_impl(effects, mode=AllMode.EITHER, concurrent=concurrent)
+
+        def _check_list(eithers: list[Any]) -> Effect[Any, Any, Any]:
+            if any(isinstance(e, either_module.Left) for e in eithers):
+                errors = [
+                    option_module.some(e.value)
+                    if isinstance(e, either_module.Left)
+                    else option_module.nothing()
+                    for e in eithers
+                ]
+                return cast(Effect[Any, Any, Any], Fail(errors))
+            return cast(Effect[Any, Any, Any], Succeed([e.value for e in eithers]))
+
+        return FlatMap(either_eff, _check_list)
+
+    # DEFAULT: run each effect, collect results, short-circuit on first failure
+    return for_each(effects, lambda eff, _: eff, concurrent=concurrent)
+
+
+def _all_dict_impl(
+    effects: dict[Any, Effect[Any, Any, Any]],
+    *,
+    mode: str,
+    concurrent: bool,
+) -> Effect[Any, Any, Any]:
+    items = list(effects.items())
+    keys = [k for k, _ in items]
+    effs = [v for _, v in items]
+
+    if mode == AllMode.EITHER:
+        absorb = [cast(Effect[Any, Any, Any], Absorb(eff)) for eff in effs]
+
+        def _build_either(values: list[Any]) -> dict[Any, Any]:
+            return dict(zip(keys, values, strict=True))
+
+        return Map(for_each(absorb, lambda eff, _: eff, concurrent=concurrent), _build_either)
+
+    if mode == AllMode.VALIDATE:
+        either_eff = _all_dict_impl(effects, mode=AllMode.EITHER, concurrent=concurrent)
+
+        def _check_dict(either_dict: dict[Any, Any]) -> Effect[Any, Any, Any]:
+            if any(isinstance(v, either_module.Left) for v in either_dict.values()):
+                return cast(
+                    Effect[Any, Any, Any],
+                    Fail(
+                        {
+                            k: option_module.some(v.value)
+                            if isinstance(v, either_module.Left)
+                            else option_module.nothing()
+                            for k, v in either_dict.items()
+                        }
+                    ),
+                )
+            return cast(
+                Effect[Any, Any, Any], Succeed({k: v.value for k, v in either_dict.items()})
+            )
+
+        return FlatMap(either_eff, _check_dict)
+
+    # DEFAULT: run each effect, collect into dict, short-circuit on first failure
+    def _build_default(values: list[Any]) -> dict[Any, Any]:
+        return dict(zip(keys, values, strict=True))
+
+    return Map(for_each(effs, lambda eff, _: eff, concurrent=concurrent), _build_default)
+
+
+# ---- list overloads --------------------------------------------------------
+
+
+@overload
+def all_[A, E, R](
+    effects: list[Effect[A, E, R]],
+    *,
+    mode: Literal["default", AllMode.DEFAULT] = ...,
+    concurrent: bool = ...,
+) -> Effect[list[A], E, R]: ...
+
+
+@overload
+def all_[A, E, R](
+    effects: list[Effect[A, E, R]],
+    *,
+    mode: Literal["either", AllMode.EITHER],
+    concurrent: bool = ...,
+) -> Effect[list[either_module.Either[A, E]], Never, R]: ...
+
+
+@overload
+def all_[A, E, R](
+    effects: list[Effect[A, E, R]],
+    *,
+    mode: Literal["validate", AllMode.VALIDATE],
+    concurrent: bool = ...,
+) -> Effect[list[A], list[option_module.Option[E]], R]: ...
+
+
+# ---- dict overloads --------------------------------------------------------
+
+
+@overload
+def all_[K, A, E, R](
+    effects: dict[K, Effect[A, E, R]],
+    *,
+    mode: Literal["default", AllMode.DEFAULT] = ...,
+    concurrent: bool = ...,
+) -> Effect[dict[K, A], E, R]: ...
+
+
+@overload
+def all_[K, A, E, R](
+    effects: dict[K, Effect[A, E, R]],
+    *,
+    mode: Literal["either", AllMode.EITHER],
+    concurrent: bool = ...,
+) -> Effect[dict[K, either_module.Either[A, E]], Never, R]: ...
+
+
+@overload
+def all_[K, A, E, R](
+    effects: dict[K, Effect[A, E, R]],
+    *,
+    mode: Literal["validate", AllMode.VALIDATE],
+    concurrent: bool = ...,
+) -> Effect[dict[K, A], dict[K, option_module.Option[E]], R]: ...
+
+
+# ---- implementation --------------------------------------------------------
+
+
+def all_(  # type: ignore[misc]
+    effects: list[Effect[Any, Any, Any]] | dict[Any, Effect[Any, Any, Any]],
+    *,
+    mode: Literal["default", "either", "validate"] | AllMode = AllMode.DEFAULT,
+    concurrent: bool = False,
+) -> Effect[Any, Any, Any]:
+    """
+    Combine a list or dict of effects into a single effect.
+
+    By default, effects run sequentially and short-circuit on the first failure.
+    Pass concurrent=True to run effects concurrently (async runtime only).
+
+    The mode controls how results and failures are collected:
+
+    - DEFAULT (default): returns collected values, short-circuits on first failure.
+    - EITHER: all effects run; each result is Right (success) or Left (failure).
+      The combined effect never fails — errors land in the Left channel.
+    - VALIDATE: all effects run; if all succeed, returns collected values.
+      If any fail, the combined effect fails with the error structure (list or
+      dict of Option[E] — Some(error) for failures, Nothing for successes).
+
+    Supports list[Effect[A, E, R]] and dict[K, Effect[A, E, R]] inputs.
+
+    Example (list, default):
+        ```python
+        from pyfect import effect
+
+        result = effect.all([effect.succeed(1), effect.succeed(2)])
+        effect.run_sync(result)  # [1, 2]
+        ```
+
+    Example (dict, either mode):
+        ```python
+        from pyfect import effect
+
+        result = effect.all(
+            {"a": effect.succeed(1), "b": effect.fail("oops")},
+            mode=effect.AllMode.EITHER,
+        )
+        effect.run_sync(result)  # {"a": Right(1), "b": Left("oops")}
+        ```
+
+    Example (list, validate mode):
+        ```python
+        from pyfect import effect
+
+        result = effect.all(
+            [effect.succeed(1), effect.fail("oops"), effect.succeed(3)],
+            mode=effect.AllMode.VALIDATE,
+        )
+        effect.run_sync_exit(result)
+        # Failure([Nothing, Some("oops"), Nothing])
+        ```
+    """
+    if isinstance(effects, dict):
+        return _all_dict_impl(effects, mode=str(mode), concurrent=concurrent)
+    return _all_list_impl(list(effects), mode=str(mode), concurrent=concurrent)
+
+
 __all__ = [
+    "AllMode",
     "UnlessEffectCallable",
     "WhenCallable",
     "WhenEffectCallable",
+    "all_",
     "for_each",
     "if_",
     "loop",
@@ -793,6 +1014,6 @@ __all__ = [
     "unless_effect",
     "when",
     "when_effect",
-    "zip",
+    "zip_",
     "zip_with",
 ]

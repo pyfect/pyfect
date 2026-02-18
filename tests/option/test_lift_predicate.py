@@ -29,7 +29,7 @@ def test_lift_predicate_equivalent_to_filter_some() -> None:
     value = 42
 
     from_lift = option.lift_predicate(predicate)(value)
-    from_filter = option.filter(predicate)(option.some(value))
+    from_filter = option.filter_(predicate)(option.some(value))
 
     assert from_lift == from_filter
 

@@ -269,7 +269,7 @@ def match_[A, B, C](
 # ============================================================================
 
 
-def map[A, B](f: Callable[[A], B]) -> Callable[[Option[A]], Option[B]]:
+def map_[A, B](f: Callable[[A], B]) -> Callable[[Option[A]], Option[B]]:
     """
     Transform the value inside an Option.
 
@@ -278,8 +278,8 @@ def map[A, B](f: Callable[[A], B]) -> Callable[[Option[A]], Option[B]]:
     Example:
         ```python
         from pyfect import pipe
-        pipe(some(42), map(lambda x: x * 2))  # Some(value=84)
-        pipe(nothing(), map(lambda x: x * 2))  # Nothing()
+        pipe(some(42), map_(lambda x: x * 2))  # Some(value=84)
+        pipe(nothing(), map_(lambda x: x * 2))  # Nothing()
         ```
     """
 
@@ -320,7 +320,7 @@ def flat_map[A, B](f: Callable[[A], Option[B]]) -> Callable[[Option[A]], Option[
     return _flat_map
 
 
-def filter[A](predicate: Callable[[A], bool]) -> Callable[[Option[A]], Option[A]]:
+def filter_[A](predicate: Callable[[A], bool]) -> Callable[[Option[A]], Option[A]]:
     """
     Keep the value only if it satisfies the predicate.
 
@@ -331,9 +331,9 @@ def filter[A](predicate: Callable[[A], bool]) -> Callable[[Option[A]], Option[A]
     Example:
         ```python
         from pyfect import pipe
-        pipe(some(42), filter(lambda x: x > 0))  # Some(value=42)
-        pipe(some(-1), filter(lambda x: x > 0))  # Nothing()
-        pipe(nothing(), filter(lambda x: x > 0))  # Nothing()
+        pipe(some(42), filter_(lambda x: x > 0))  # Some(value=42)
+        pipe(some(-1), filter_(lambda x: x > 0))  # Nothing()
+        pipe(nothing(), filter_(lambda x: x > 0))  # Nothing()
         ```
     """
 
@@ -552,14 +552,14 @@ def first_some_of[A](options: Iterable[Option[A]]) -> Option[A]:
 
 
 @overload
-def all[A](options: list[Option[A]]) -> Option[list[A]]: ...
+def all_[A](options: list[Option[A]]) -> Option[list[A]]: ...
 
 
 @overload
-def all[K, A](options: dict[K, Option[A]]) -> Option[dict[K, A]]: ...
+def all_[K, A](options: dict[K, Option[A]]) -> Option[dict[K, A]]: ...
 
 
-def all[A, K](
+def all_[A, K](
     options: list[Option[A]] | dict[K, Option[A]],
 ) -> Option[list[A]] | Option[dict[K, A]]:  # type: ignore[misc]
     """
@@ -568,21 +568,11 @@ def all[A, K](
     If all elements are Some, returns Some containing the collected values.
     If any element is Nothing, returns Nothing.
 
-    Note:
-        For heterogeneous collections (elements with different value types),
-        the type checker will not infer the correct type automatically. You
-        should provide an explicit type annotation and suppress the error:
-
-        ```python
-        options: list[Option[int | str]] = [some(1), some("hello")]
-        result: Option[list[int | str]] = all(options)  # type: ignore[arg-type]
-        ```
-
     Example:
         ```python
-        all([some("John"), some(25)])  # Some(value=['John', 25])
-        all({"name": some("John"), "age": some(25)})  # Some(value={'name': 'John', 'age': 25})
-        all([some(1), nothing(), some(3)])  # Nothing()
+        all_([some("John"), some(25)])  # Some(value=['John', 25])
+        all_({"name": some("John"), "age": some(25)})  # Some(value={'name': 'John', 'age': 25})
+        all_([some(1), nothing(), some(3)])  # Nothing()
         ```
     """
     if isinstance(options, dict):
@@ -608,8 +598,8 @@ __all__ = [
     "Nothing",
     "Option",
     "Some",
-    "all",
-    "filter",
+    "all_",
+    "filter_",
     "first_some_of",
     "flat_map",
     "from_optional",
@@ -619,7 +609,7 @@ __all__ = [
     "is_nothing",
     "is_some",
     "lift_predicate",
-    "map",
+    "map_",
     "match_",
     "nothing",
     "or_else",

@@ -147,7 +147,7 @@ def test_flat_map_vs_map() -> None:
     # map transforms values
     map_result = pipe(
         effect.succeed(10),
-        effect.map(lambda x: x * 2),
+        effect.map_(lambda x: x * 2),
     )
     assert effect.run_sync(map_result) == 20  # noqa: PLR2004
 
@@ -186,9 +186,9 @@ def test_flat_map_composition_with_map() -> None:
     """Test composing flat_map with map."""
     result = pipe(
         effect.succeed(5),
-        effect.map(lambda x: x + 1),  # 6
+        effect.map_(lambda x: x + 1),  # 6
         effect.flat_map(lambda x: effect.succeed(x * 2)),  # 12
-        effect.map(lambda x: x - 2),  # 10
+        effect.map_(lambda x: x - 2),  # 10
     )
     assert effect.run_sync(result) == 10  # noqa: PLR2004
 

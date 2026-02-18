@@ -99,8 +99,8 @@ def test_zip_with_exit_failure() -> None:
 def test_zip_with_pipe_combinators() -> None:
     """zip_with composes naturally with pipe combinators on individual effects."""
     result = effect.zip_with(
-        pipe(effect.succeed(10), effect.map(lambda x: x * 2)),
-        pipe(effect.succeed("hi"), effect.map(str.upper)),
+        pipe(effect.succeed(10), effect.map_(lambda x: x * 2)),
+        pipe(effect.succeed("hi"), effect.map_(str.upper)),
         lambda n, s: f"{s}-{n}",
     )
     assert effect.run_sync(result) == "HI-20"

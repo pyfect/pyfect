@@ -9,18 +9,18 @@ from pyfect.either import Left, Right
 
 
 def test_map_transforms_right() -> None:
-    result = pipe(either.right(1), either.map(lambda x: x + 1))
+    result = pipe(either.right(1), either.map_(lambda x: x + 1))
     assert result == Right(2)
 
 
 def test_map_passes_left_through() -> None:
     e: either.Either[int, str] = either.left("oops")
-    result = pipe(e, either.map(lambda x: x + 1))
+    result = pipe(e, either.map_(lambda x: x + 1))
     assert result == Left("oops")
 
 
 def test_map_changes_right_type() -> None:
-    result = pipe(either.right(42), either.map(str))
+    result = pipe(either.right(42), either.map_(str))
     assert result == Right("42")
 
 
