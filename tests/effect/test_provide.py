@@ -84,18 +84,8 @@ def test_three_provides_chain() -> None:
     log = Logger("WARN")
     cache = Cache(60)
 
-    needs_all = pipe(
-        effect.service(Database, Logger),
-        effect.flat_map(
-            lambda dl: pipe(
-                effect.service(Cache),
-                effect.map_(lambda c: (*dl, c)),
-            )
-        ),
-    )
-
     runnable = pipe(
-        needs_all,
+        effect.service(Database, Logger, Cache),
         effect.provide(context.make((Database, db))),
         effect.provide(context.make((Logger, log))),
         effect.provide(context.make((Cache, cache))),
