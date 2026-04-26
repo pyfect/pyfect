@@ -14,6 +14,7 @@ from pyfect.primitives import (
     Fail,
     FlatMap,
     Succeed,
+    Sync,
 )
 
 # ============================================================================
@@ -31,6 +32,14 @@ class CatchSomeCallable[E, A2, E2 = Never, R2 = Never](Protocol):
 
 class CatchIfCallable[E, A2, E2 = Never, R2 = Never](Protocol):
     def __call__[A, R](self, eff: Effect[A, E, R]) -> Effect[A | A2, E, R | R2]: ...
+
+
+class OrDieCallable(Protocol):
+    def __call__[A, E, R](self, eff: Effect[A, E, R]) -> Effect[A, Never, R]: ...
+
+
+class OrDieWithCallable[E](Protocol):
+    def __call__[A, R](self, eff: Effect[A, E, R]) -> Effect[A, Never, R]: ...
 
 
 # ============================================================================
@@ -192,11 +201,93 @@ def catch_if[E, A2, E2 = Never, R2 = Never](  # type: ignore[misc]
     return cast(CatchIfCallable[E, A2, E2, R2], _apply)
 
 
+def or_die() -> OrDieCallable:
+    """
+    Convert all typed errors into defects, erasing the error type.
+
+    On success the value passes through unchanged. On failure the error is
+    raised as a raw exception, bypassing the typed error channel entirely.
+    If the error is already a ``BaseException`` it is raised as-is; otherwise
+    it is wrapped in a ``RuntimeError``.
+
+    Use this when you have decided an error is unrecoverable and want to
+    stop tracking it in the type.
+
+    Example:
+        ```python
+        from pyfect import effect, pipe
+
+        result = pipe(
+            effect.fail(ValueError("unrecoverable")),
+            effect.or_die(),
+        )
+        # Effect[int, Never, Never] — error type erased
+        ```
+    """
+
+    def _apply(eff: Effect[Any, Any, Any]) -> Effect[Any, Any, Any]:
+        def _handle(either: Any) -> Effect[Any, Any, Any]:
+            if isinstance(either, Right):
+                return Succeed(either.value)
+            err = either.value
+
+            def _raise() -> Never:
+                if isinstance(err, BaseException):
+                    raise err
+                raise RuntimeError(str(err))
+
+            return Sync(_raise)
+
+        return FlatMap(Absorb(eff), _handle)
+
+    return cast(OrDieCallable, _apply)
+
+
+def or_die_with[E](f: Callable[[E], BaseException]) -> OrDieWithCallable[E]:
+    """
+    Convert typed errors into defects using a custom transform.
+
+    Like ``or_die``, but lets you map the error to a specific exception
+    before raising it. Useful when you want to include context or change
+    the exception type for debugging purposes.
+
+    Example:
+        ```python
+        from pyfect import effect, pipe
+
+        result = pipe(
+            effect.fail("something went wrong"),
+            effect.or_die_with(lambda e: RuntimeError(f"defect: {e}")),
+        )
+        # Effect[int, Never, Never] — error type erased
+        ```
+    """
+
+    def _apply(eff: Effect[Any, Any, Any]) -> Effect[Any, Any, Any]:
+        def _handle(either: Any) -> Effect[Any, Any, Any]:
+            if isinstance(either, Right):
+                return Succeed(either.value)
+            defect = f(either.value)
+
+            def _raise() -> Never:
+                raise defect
+
+            return Sync(_raise)
+
+        return FlatMap(Absorb(eff), _handle)
+
+    return cast(OrDieWithCallable[E], _apply)
+
+
 __all__ = [
     "CatchAllCallable",
     "CatchIfCallable",
     "CatchSomeCallable",
+    "OrDieCallable",
+    "OrDieWithCallable",
     "catch_all",
     "catch_if",
     "catch_some",
+    "or_die",
+    "or_die_with",
 ]

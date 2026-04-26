@@ -44,6 +44,30 @@ def fail[E, A = Never](error: E) -> Effect[A, E]:
     return Fail(error)
 
 
+def die(defect: BaseException) -> Effect[Never]:
+    """
+    Create an effect that terminates with an unrecoverable defect.
+
+    Unlike ``fail``, the error is not placed in the typed error channel —
+    it bypasses error handling entirely and propagates as a raw exception.
+    Use this when a condition is so unexpected that there is no sensible
+    way to recover.
+
+    Example:
+        ```python
+        def divide(a: int, b: int) -> Effect[float]:
+            if b == 0:
+                return die(ValueError("Cannot divide by zero"))
+            return succeed(a / b)
+        ```
+    """
+
+    def _raise() -> Never:
+        raise defect
+
+    return Sync(_raise)
+
+
 def sync[A, E = Never](thunk: Callable[[], A]) -> Effect[A, E]:
     """
     Create an effect from a synchronous computation.
@@ -319,6 +343,7 @@ def service(*tags: type) -> Effect:  # type: ignore[type-arg, misc]
 
 __all__ = [
     "async_",
+    "die",
     "fail",
     "service",
     "succeed",

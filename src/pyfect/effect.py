@@ -125,6 +125,7 @@ def provide[R, E2 = Never](  # type: ignore[misc]
 
 from pyfect.constructors import (  # noqa: E402
     async_,
+    die,
     fail,
     service,
     succeed,
@@ -153,9 +154,13 @@ from pyfect.error import (  # noqa: E402
     CatchAllCallable,
     CatchIfCallable,
     CatchSomeCallable,
+    OrDieCallable,
+    OrDieWithCallable,
     catch_all,
     catch_if,
     catch_some,
+    or_die,
+    or_die_with,
 )
 from pyfect.exit import Exit, Failure, Success  # noqa: E402
 from pyfect.interop import (  # noqa: E402
@@ -209,6 +214,8 @@ __all__ = [
     "MapError",
     "MapErrorCallable",
     "Never",
+    "OrDieCallable",
+    "OrDieWithCallable",
     "Provide",
     "ProvideCallable",
     "Service",
@@ -233,6 +240,7 @@ __all__ = [
     "catch_if",
     "catch_some",
     "delay",
+    "die",
     "either",
     "fail",
     "flat_map",
@@ -245,6 +253,8 @@ __all__ = [
     "map_",
     "map_error",
     "option",
+    "or_die",
+    "or_die_with",
     "provide",
     "run_async",
     "run_async_exit",
