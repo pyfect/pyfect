@@ -34,6 +34,10 @@ class CatchIfCallable[E, A2, E2 = Never, R2 = Never](Protocol):
     def __call__[A, R](self, eff: Effect[A, E, R]) -> Effect[A | A2, E, R | R2]: ...
 
 
+class OrElseCallable[A2, E2 = Never, R2 = Never](Protocol):
+    def __call__[A, E, R](self, eff: Effect[A, E, R]) -> Effect[A | A2, E2, R | R2]: ...
+
+
 class OrDieCallable(Protocol):
     def __call__[A, E, R](self, eff: Effect[A, E, R]) -> Effect[A, Never, R]: ...
 
@@ -201,6 +205,43 @@ def catch_if[E, A2, E2 = Never, R2 = Never](  # type: ignore[misc]
     return cast(CatchIfCallable[E, A2, E2, R2], _apply)
 
 
+def or_else[A2, E2 = Never, R2 = Never](
+    fallback: Effect[A2, E2, R2],
+) -> OrElseCallable[A2, E2, R2]:
+    """
+    Run a fallback effect if the original fails, discarding the error.
+
+    On success the value passes through unchanged. On failure the error is
+    discarded and the fallback effect is executed instead. The resulting
+    effect's error type is E2 — the original E is fully handled.
+
+    Unlike catch_all, the fallback is a fixed effect rather than a function
+    of the error. Use catch_all when you need the error value to decide
+    what to do next.
+
+    Example:
+        ```python
+        from pyfect import effect, pipe
+
+        result = pipe(
+            effect.fail("something went wrong"),
+            effect.or_else(effect.succeed("default")),
+        )
+        effect.run_sync(result)  # "default"
+        ```
+    """
+
+    def _apply(eff: Effect[Any, Any, Any]) -> Effect[Any, Any, Any]:
+        def _handle(either: Any) -> Effect[Any, Any, Any]:
+            if isinstance(either, Right):
+                return Succeed(either.value)
+            return fallback
+
+        return FlatMap(Absorb(eff), _handle)
+
+    return cast(OrElseCallable[A2, E2, R2], _apply)
+
+
 def or_die() -> OrDieCallable:
     """
     Convert all typed errors into defects, erasing the error type.
@@ -285,9 +326,11 @@ __all__ = [
     "CatchSomeCallable",
     "OrDieCallable",
     "OrDieWithCallable",
+    "OrElseCallable",
     "catch_all",
     "catch_if",
     "catch_some",
     "or_die",
     "or_die_with",
+    "or_else",
 ]

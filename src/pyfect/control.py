@@ -1001,12 +1001,56 @@ def all_(  # type: ignore[misc]
     return _all_list_impl(list(effects), mode=str(mode), concurrent=concurrent)
 
 
+def first_success_of[A, E, R](effects: Iterable[Effect[A, E, R]]) -> Effect[A, E, R]:
+    """
+    Try effects in sequence, returning the first that succeeds.
+
+    If all effects fail, the error of the last one is returned. Raises
+    ``ValueError`` immediately if the collection is empty, since there is
+    no sensible result to return.
+
+    Example:
+        ```python
+        from pyfect import effect
+
+        result = effect.first_success_of([
+            effect.fail("node1 down"),
+            effect.fail("node2 down"),
+            effect.succeed("node3 ok"),
+        ])
+        effect.run_sync(result)  # "node3 ok"
+        ```
+    """
+    iterator = iter(effects)
+    try:
+        result: Effect[Any, Any, Any] = next(iterator)
+    except StopIteration:
+        raise ValueError("first_success_of requires at least one effect") from None  # noqa: EM101
+
+    for eff in iterator:
+
+        def _make_handler(
+            fallback: Effect[Any, Any, Any],
+        ) -> Callable[[Any], Effect[Any, Any, Any]]:
+            def _handle(either: Any) -> Effect[Any, Any, Any]:
+                if isinstance(either, either_module.Right):
+                    return Succeed(either.value)
+                return fallback
+
+            return _handle
+
+        result = FlatMap(Absorb(result), _make_handler(eff))
+
+    return cast(Effect[A, E, R], result)
+
+
 __all__ = [
     "AllMode",
     "UnlessEffectCallable",
     "WhenCallable",
     "WhenEffectCallable",
     "all_",
+    "first_success_of",
     "for_each",
     "if_",
     "loop",
