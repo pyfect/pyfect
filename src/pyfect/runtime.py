@@ -121,11 +121,11 @@ def _run_sync_fiber[A, E](  # noqa: PLR0911, PLR0912, PLR0915
             return exit.fail(inner_result.error)  # type: ignore[attr-defined]  # pyright: ignore[reportAttributeAccessIssue]
         case Suspend(thunk):
             return _run_sync_fiber(thunk(), ctx, memo)
-        case TrySync(thunk):
+        case TrySync(thunk, catch):
             try:
                 return exit.succeed(thunk())
             except Exception as e:
-                return exit.fail(cast(E, e))
+                return exit.fail(cast(E, catch(e) if catch is not None else e))
         case Service(tag):
             return exit.succeed(context_module.get(ctx, tag))
         case Provide(inner_effect, new_ctx):
@@ -209,16 +209,16 @@ async def _run_async_fiber[A, E](  # noqa: PLR0911, PLR0912, PLR0915
             return exit.fail(inner_result.error)  # type: ignore[attr-defined]  # pyright: ignore[reportAttributeAccessIssue]
         case Suspend(thunk):
             return await _run_async_fiber(thunk(), ctx, memo)
-        case TrySync(thunk):
+        case TrySync(thunk, catch):
             try:
                 return exit.succeed(thunk())
             except Exception as e:
-                return exit.fail(cast(E, e))
-        case TryAsync(thunk):
+                return exit.fail(cast(E, catch(e) if catch is not None else e))
+        case TryAsync(thunk, catch):
             try:
                 return exit.succeed(await thunk())
             except Exception as e:
-                return exit.fail(cast(E, e))
+                return exit.fail(cast(E, catch(e) if catch is not None else e))
         case Service(tag):
             return exit.succeed(context_module.get(ctx, tag))
         case Provide(inner_effect, new_ctx):

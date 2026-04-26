@@ -193,6 +193,102 @@ def test_try_sync_vs_sync() -> None:
     assert isinstance(result.error, ValueError)
 
 
+def test_try_sync_catch_transforms_exception() -> None:
+    """Test that try_sync with catch maps the exception to a typed error."""
+
+    class AppError:
+        def __init__(self, msg: str) -> None:
+            self.msg = msg
+
+    def make_app_error(e: Exception) -> AppError:
+        return AppError(str(e))
+
+    eff = effect.try_sync(lambda: int("bad"), catch=make_app_error)
+    result = effect.run_sync_exit(eff)
+
+    assert isinstance(result, effect.Failure)
+    assert isinstance(result.error, AppError)
+    assert "invalid literal" in result.error.msg
+
+
+def test_try_sync_catch_lambda() -> None:
+    """Test that try_sync catch works with a lambda."""
+
+    class AppError:
+        def __init__(self, msg: str) -> None:
+            self.msg = msg
+
+    eff = effect.try_sync(lambda: int("bad"), catch=lambda e: AppError(str(e)))
+    result = effect.run_sync_exit(eff)
+
+    assert isinstance(result, effect.Failure)
+    assert isinstance(result.error, AppError)
+    assert "invalid literal" in result.error.msg
+
+
+def test_try_sync_catch_not_called_on_success() -> None:
+    """Test that catch is not invoked when the computation succeeds."""
+    called: list[bool] = []
+
+    class AppError:
+        pass
+
+    def make_app_error(e: Exception) -> AppError:
+        called.append(True)
+        return AppError()
+
+    eff = effect.try_sync(lambda: 42, catch=make_app_error)
+    result = effect.run_sync(eff)
+
+    assert result == 42  # noqa: PLR2004
+    assert called == []
+
+
+def test_try_sync_catch_multiple_exception_types() -> None:
+    """Test that catch can dispatch on multiple exception types."""
+
+    class NetworkError(Exception):
+        pass
+
+    class ParseError(Exception):
+        pass
+
+    def map_err(e: Exception) -> NetworkError | ParseError:
+        match e:
+            case ConnectionError():
+                return NetworkError("connection failed")
+            case ValueError():
+                return ParseError("parse failed")
+            case _:
+                raise e
+
+    eff = effect.try_sync(lambda: int("bad"), catch=map_err)
+    result = effect.run_sync_exit(eff)
+
+    assert isinstance(result, effect.Failure)
+    assert isinstance(result.error, ParseError)
+
+
+def test_try_sync_catch_reraises_unknown_exception() -> None:
+    """Test that catch can re-raise unrecognised exceptions as defects."""
+
+    class MyError(Exception):
+        pass
+
+    def selective_catch(e: Exception) -> MyError:
+        if isinstance(e, MyError):
+            return e
+        raise e
+
+    eff = effect.try_sync(lambda: (_ for _ in ()).throw(MyError("known")), catch=selective_catch)
+    result = effect.run_sync_exit(eff)
+    assert isinstance(result, effect.Failure)
+    assert isinstance(result.error, MyError)
+
+    with pytest.raises(ZeroDivisionError):
+        effect.run_sync_exit(effect.try_sync(lambda: 1 / 0, catch=selective_catch))
+
+
 def test_try_sync_lazy_evaluation() -> None:
     """Test that try_sync doesn't execute immediately."""
     executed = []
@@ -205,6 +301,69 @@ def test_try_sync_lazy_evaluation() -> None:
     # Execute now
     effect.run_sync(eff)
     assert len(executed) == 1
+
+
+@pytest.mark.asyncio
+async def test_try_async_catch_transforms_exception() -> None:
+    """Test that try_async with catch maps the exception to a typed error."""
+
+    class AppError:
+        def __init__(self, msg: str) -> None:
+            self.msg = msg
+
+    async def failing() -> int:
+        raise ValueError("oops")  # noqa: EM101
+
+    def make_app_error(e: Exception) -> AppError:
+        return AppError(str(e))
+
+    eff = effect.try_async(failing, catch=make_app_error)
+    result = await effect.run_async_exit(eff)
+
+    assert isinstance(result, effect.Failure)
+    assert isinstance(result.error, AppError)
+    assert "oops" in result.error.msg
+
+
+@pytest.mark.asyncio
+async def test_try_async_catch_lambda() -> None:
+    """Test that try_async catch works with a lambda."""
+
+    class AppError:
+        def __init__(self, msg: str) -> None:
+            self.msg = msg
+
+    async def failing() -> int:
+        raise ValueError("oops")  # noqa: EM101
+
+    eff = effect.try_async(failing, catch=lambda e: AppError(str(e)))
+    result = await effect.run_async_exit(eff)
+
+    assert isinstance(result, effect.Failure)
+    assert isinstance(result.error, AppError)
+    assert "oops" in result.error.msg
+
+
+@pytest.mark.asyncio
+async def test_try_async_catch_not_called_on_success() -> None:
+    """Test that catch is not invoked when the async computation succeeds."""
+    called: list[bool] = []
+
+    class AppError:
+        pass
+
+    async def succeeding() -> int:
+        return 42
+
+    def make_app_error(e: Exception) -> AppError:
+        called.append(True)
+        return AppError()
+
+    eff = effect.try_async(succeeding, catch=make_app_error)
+    result = await effect.run_async(eff)
+
+    assert result == 42  # noqa: PLR2004
+    assert called == []
 
 
 @pytest.mark.asyncio

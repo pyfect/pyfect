@@ -3,7 +3,7 @@ Effect constructors — functions that create Effect values from scratch.
 """
 
 from collections.abc import Awaitable, Callable
-from typing import Never, overload
+from typing import Any, Never, overload
 
 from pyfect.primitives import (
     Async,
@@ -80,26 +80,71 @@ def async_[A, E = Never](thunk: Callable[[], Awaitable[A]]) -> Effect[A, E]:
     return Async(thunk)
 
 
-def try_sync[A](thunk: Callable[[], A]) -> Effect[A, Exception]:
+@overload
+def try_sync[A](thunk: Callable[[], A]) -> Effect[A, Exception]: ...
+
+
+@overload
+def try_sync[A, E](thunk: Callable[[], A], *, catch: Callable[[Exception], E]) -> Effect[A, E]: ...
+
+
+def try_sync(  # type: ignore[misc]
+    thunk: Callable[[], Any],
+    *,
+    catch: Callable[[Exception], Any] | None = None,
+) -> Effect[Any, Any]:
     """
     Create an effect from a synchronous computation that might throw.
 
-    Exceptions are captured and converted to effect errors.
+    Exceptions are captured and converted to effect errors. Pass ``catch``
+    to transform the exception into a typed error instead of bare
+    ``Exception``.
 
     Example:
         ```python
+        # Untyped — error type is Exception
         eff = try_sync(lambda: int("not a number"))
-        result = run_sync_exit(eff)  # Failure(ValueError(...))
+
+        # Typed — error type is ParseError
+        eff = try_sync(lambda: int("not a number"), catch=lambda e: ParseError(str(e)))
+
+        # Multiple exception types via match
+        def map_err(e: Exception) -> NetworkError | HttpError:
+            match e:
+                case ConnectionError():
+                    return NetworkError(str(e))
+                case httpx.HTTPStatusError() as err:
+                    return HttpError(err.response.status_code)
+                case _:
+                    raise e  # re-raise as defect
+
+        eff = try_sync(lambda: client.get("/"), catch=map_err)
         ```
     """
-    return TrySync(thunk)
+    return TrySync(thunk, catch)
 
 
-def try_async[A](thunk: Callable[[], Awaitable[A]]) -> Effect[A, Exception]:
+@overload
+def try_async[A](thunk: Callable[[], Awaitable[A]]) -> Effect[A, Exception]: ...
+
+
+@overload
+def try_async[A, E](
+    thunk: Callable[[], Awaitable[A]], *, catch: Callable[[Exception], E]
+) -> Effect[A, E]: ...
+
+
+def try_async(  # type: ignore[misc]
+    thunk: Callable[[], Awaitable[Any]],
+    *,
+    catch: Callable[[Exception], Any] | None = None,
+) -> Effect[Any, Any]:
     """
     Create an effect from an asynchronous computation that might throw.
 
-    Exceptions are captured and converted to effect errors.
+    Exceptions are captured and converted to effect errors. Pass ``catch``
+    to transform the exception into a typed error instead of bare
+    ``Exception``.
 
     Example:
         ```python
@@ -109,11 +154,14 @@ def try_async[A](thunk: Callable[[], Awaitable[A]]) -> Effect[A, Exception]:
             await asyncio.sleep(0.1)
             raise ValueError("oops")
 
+        # Untyped
         eff = try_async(might_fail)
-        result = await run_async_exit(eff)  # Failure(ValueError("oops"))
+
+        # Typed
+        eff = try_async(might_fail, catch=lambda e: AppError(str(e)))
         ```
     """
-    return TryAsync(thunk)
+    return TryAsync(thunk, catch)
 
 
 def suspend[A, E = Never, R = Never](thunk: Callable[[], Effect[A, E, R]]) -> Effect[A, E, R]:

@@ -69,6 +69,7 @@ class TrySync[A, E = Never, R = Never](Effect[A, E, R]):
     """An effect that wraps a synchronous computation that might throw."""
 
     thunk: Callable[[], A]
+    catch: "Callable[[Exception], Any] | None" = None
 
 
 @dataclass(frozen=True)
@@ -76,6 +77,7 @@ class TryAsync[A, E = Never, R = Never](Effect[A, E, R]):
     """An effect that wraps an asynchronous computation that might throw."""
 
     thunk: Callable[[], Awaitable[A]]
+    catch: "Callable[[Exception], Any] | None" = None
 
 
 @dataclass(frozen=True)
