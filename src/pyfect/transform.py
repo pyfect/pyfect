@@ -5,12 +5,15 @@ Transform combinators for mapping, chaining, and inspecting effects.
 from collections.abc import Callable
 from typing import Any, Never, Protocol, cast
 
+from pyfect.either import Right
 from pyfect.primitives import (
+    Absorb,
     Effect,
     FlatMap,
     Ignore,
     Map,
     MapError,
+    Succeed,
     Tap,
     TapError,
 )
@@ -46,6 +49,14 @@ class TapCallable[E2 = Never, R2 = Never](Protocol):
 
 class TapErrorCallable[E2 = Never, R2 = Never](Protocol):
     def __call__[A, E, R](self, eff: Effect[A, E, R]) -> Effect[A, E | E2, R | R2]: ...
+
+
+class MatchCallable[A, E, B](Protocol):
+    def __call__[R](self, eff: Effect[A, E, R]) -> Effect[B, Never, R]: ...
+
+
+class MatchEffectCallable[A, E, B, E2 = Never, R2 = Never](Protocol):
+    def __call__[R](self, eff: Effect[A, E, R]) -> Effect[B, E2, R | R2]: ...
 
 
 # ============================================================================
@@ -317,12 +328,90 @@ def tap_error[E, B, E2 = Never, R2 = Never](
     return cast(TapErrorCallable[E2, R2], _apply)
 
 
+def match_[A, E, B](
+    on_failure: Callable[[E], B],
+    on_success: Callable[[A], B],
+) -> MatchCallable[A, E, B]:
+    """
+    Handle both success and failure, mapping each to a common type.
+
+    The resulting effect always succeeds with a value of type B — the error
+    type is erased to Never. Use this when you want to fold both outcomes
+    into a single value without running further effects.
+
+    For handlers that return effects, use match_effect instead.
+
+    Example:
+        ```python
+        from pyfect import effect, pipe
+
+        result = pipe(
+            effect.fail("oops"),
+            effect.match_(
+                on_failure=lambda e: f"failed: {e}",
+                on_success=lambda v: f"got: {v}",
+            ),
+        )
+        effect.run_sync(result)  # "failed: oops"
+        ```
+    """
+
+    def _apply(eff: Effect[Any, Any, Any]) -> Effect[Any, Any, Any]:
+        def _handle(either: Any) -> Effect[Any, Any, Any]:
+            if isinstance(either, Right):
+                return Succeed(on_success(either.value))
+            return Succeed(on_failure(either.value))
+
+        return FlatMap(Absorb(eff), _handle)
+
+    return cast(MatchCallable[A, E, B], _apply)
+
+
+def match_effect[A, E, B, E2 = Never, R2 = Never](
+    on_failure: Callable[[E], Effect[B, E2, R2]],
+    on_success: Callable[[A], Effect[B, E2, R2]],
+) -> MatchEffectCallable[A, E, B, E2, R2]:
+    """
+    Handle both success and failure with effectful handlers.
+
+    Like match_, but each handler returns an Effect rather than a plain value.
+    Use this when the handling itself involves side effects such as logging,
+    writing to a database, or notifying a user.
+
+    Example:
+        ```python
+        from pyfect import effect, pipe
+
+        result = pipe(
+            effect.fail("oops"),
+            effect.match_effect(
+                on_failure=lambda e: effect.sync(lambda: print(f"failed: {e}")),
+                on_success=lambda v: effect.sync(lambda: print(f"got: {v}")),
+            ),
+        )
+        effect.run_sync(result)  # prints "failed: oops"
+        ```
+    """
+
+    def _apply(eff: Effect[Any, Any, Any]) -> Effect[Any, Any, Any]:
+        def _handle(either: Any) -> Effect[Any, Any, Any]:
+            if isinstance(either, Right):
+                return on_success(either.value)
+            return on_failure(either.value)
+
+        return FlatMap(Absorb(eff), _handle)
+
+    return cast(MatchEffectCallable[A, E, B, E2, R2], _apply)
+
+
 __all__ = [
     "AsCallable",
     "FlatMapCallable",
     "IgnoreCallable",
     "MapCallable",
     "MapErrorCallable",
+    "MatchCallable",
+    "MatchEffectCallable",
     "TapCallable",
     "TapErrorCallable",
     "as_",
@@ -330,6 +419,8 @@ __all__ = [
     "ignore",
     "map_",
     "map_error",
+    "match_",
+    "match_effect",
     "tap",
     "tap_error",
 ]
