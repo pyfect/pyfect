@@ -17,7 +17,7 @@ Example:
     >>> assert result == 42
 """
 
-from pyfect import context, effect, either, exit, layer, option
+from pyfect import context, effect, either, exit, layer, option, schedule
 from pyfect.pipe import pipe
 
 __version__ = "0.3.0"
@@ -31,4 +31,5 @@ __all__ = [
     "layer",
     "option",
     "pipe",
+    "schedule",
 ]
