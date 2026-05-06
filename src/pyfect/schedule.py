@@ -19,6 +19,10 @@ from typing import Any, ClassVar, Never, cast
 
 from pyfect.primitives import Effect, FlatMap, Succeed
 
+type _StepFn[R] = Callable[
+    [datetime, Any, Any], Effect[tuple[Any, Any, ScheduleDecision], Never, R]
+]
+
 
 class _Phase(Enum):
     FIRST = auto()
@@ -77,7 +81,7 @@ class Schedule[Out, In = Any, R = Never]:
     """
 
     initial: Any
-    step: Callable[[datetime, Any, Any], Effect[tuple[Any, Any, ScheduleDecision], Never, R]]
+    step: _StepFn[R]
 
 
 # ============================================================================
@@ -218,7 +222,7 @@ def union[Out1, Out2, In, R1, R2](
 
         return FlatMap(s1.step(now, input, s1_state), _with_r2)
 
-    return Schedule(initial=(s1.initial, s2.initial), step=cast(Any, _step))
+    return Schedule(initial=(s1.initial, s2.initial), step=cast(_StepFn[R1 | R2], _step))
 
 
 def intersect[Out1, Out2, In, R1, R2](
@@ -250,7 +254,7 @@ def intersect[Out1, Out2, In, R1, R2](
 
         return FlatMap(s1.step(now, input, s1_state), _with_r2)
 
-    return Schedule(initial=(s1.initial, s2.initial), step=cast(Any, _step))
+    return Schedule(initial=(s1.initial, s2.initial), step=cast(_StepFn[R1 | R2], _step))
 
 
 def and_then[Out1, Out2, In, R1, R2](
@@ -289,7 +293,7 @@ def and_then[Out1, Out2, In, R1, R2](
 
         return FlatMap(s2.step(now, input, s_state), _handle_second)
 
-    return Schedule(initial=(_Phase.FIRST, s1.initial), step=cast(Any, _step))
+    return Schedule(initial=(_Phase.FIRST, s1.initial), step=cast(_StepFn[R1 | R2], _step))
 
 
 def jittered[Out, In, R](
@@ -316,7 +320,7 @@ def jittered[Out, In, R](
 
         return FlatMap(schedule.step(now, input, state), _add_jitter)
 
-    return Schedule(initial=schedule.initial, step=cast(Any, _step))
+    return Schedule(initial=schedule.initial, step=cast(_StepFn[R], _step))
 
 
 def while_input[Out, In, R](
@@ -340,7 +344,7 @@ def while_input[Out, In, R](
 
         return FlatMap(schedule.step(now, input, state), _check)
 
-    return Schedule(initial=schedule.initial, step=cast(Any, _step))
+    return Schedule(initial=schedule.initial, step=cast(_StepFn[R], _step))
 
 
 def while_output[Out, In, R](
@@ -363,7 +367,7 @@ def while_output[Out, In, R](
 
         return FlatMap(schedule.step(now, input, state), _check)
 
-    return Schedule(initial=schedule.initial, step=cast(Any, _step))
+    return Schedule(initial=schedule.initial, step=cast(_StepFn[R], _step))
 
 
 def tap_output[Out, In, R, R2](
@@ -383,7 +387,7 @@ def tap_output[Out, In, R, R2](
 
         return FlatMap(schedule.step(now, input, state), _tap)
 
-    return Schedule(initial=schedule.initial, step=cast(Any, _step))
+    return Schedule(initial=schedule.initial, step=cast(_StepFn[R | R2], _step))
 
 
 __all__ = [

@@ -20,7 +20,7 @@ from pyfect.primitives import (
 )
 
 
-def succeed[A](value: A) -> Effect[A]:
+def succeed[A](value: A) -> Effect[A, Never, Never]:
     """
     Create an effect that succeeds with a value.
 
@@ -32,7 +32,7 @@ def succeed[A](value: A) -> Effect[A]:
     return Succeed(value)
 
 
-def fail[E, A = Never](error: E) -> Effect[A, E]:
+def fail[E, A = Never](error: E) -> Effect[A, E, Never]:
     """
     Create an effect that fails with an error.
 
@@ -44,7 +44,7 @@ def fail[E, A = Never](error: E) -> Effect[A, E]:
     return Fail(error)
 
 
-def die(defect: BaseException) -> Effect[Never]:
+def die(defect: BaseException) -> Effect[Never, Never, Never]:
     """
     Create an effect that terminates with an unrecoverable defect.
 
@@ -68,7 +68,7 @@ def die(defect: BaseException) -> Effect[Never]:
     return Sync(_raise)
 
 
-def sync[A, E = Never](thunk: Callable[[], A]) -> Effect[A, E]:
+def sync[A, E = Never](thunk: Callable[[], A]) -> Effect[A, E, Never]:
     """
     Create an effect from a synchronous computation.
 
@@ -85,7 +85,7 @@ def sync[A, E = Never](thunk: Callable[[], A]) -> Effect[A, E]:
     return Sync(thunk)
 
 
-def async_[A, E = Never](thunk: Callable[[], Awaitable[A]]) -> Effect[A, E]:
+def async_[A, E = Never](thunk: Callable[[], Awaitable[A]]) -> Effect[A, E, Never]:
     """
     Create an effect from an asynchronous computation.
 
@@ -105,11 +105,13 @@ def async_[A, E = Never](thunk: Callable[[], Awaitable[A]]) -> Effect[A, E]:
 
 
 @overload
-def try_sync[A](thunk: Callable[[], A]) -> Effect[A, Exception]: ...
+def try_sync[A](thunk: Callable[[], A]) -> Effect[A, Exception, Never]: ...
 
 
 @overload
-def try_sync[A, E](thunk: Callable[[], A], *, catch: Callable[[Exception], E]) -> Effect[A, E]: ...
+def try_sync[A, E](
+    thunk: Callable[[], A], *, catch: Callable[[Exception], E]
+) -> Effect[A, E, Never]: ...
 
 
 def try_sync(  # type: ignore[misc]
@@ -149,13 +151,13 @@ def try_sync(  # type: ignore[misc]
 
 
 @overload
-def try_async[A](thunk: Callable[[], Awaitable[A]]) -> Effect[A, Exception]: ...
+def try_async[A](thunk: Callable[[], Awaitable[A]]) -> Effect[A, Exception, Never]: ...
 
 
 @overload
 def try_async[A, E](
     thunk: Callable[[], Awaitable[A]], *, catch: Callable[[Exception], E]
-) -> Effect[A, E]: ...
+) -> Effect[A, E, Never]: ...
 
 
 def try_async(  # type: ignore[misc]

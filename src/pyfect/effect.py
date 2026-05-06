@@ -172,6 +172,7 @@ from pyfect.interop import (  # noqa: E402
     from_option,
     option,
 )
+from pyfect.repeat import RepeatCallable, repeat  # noqa: E402
 from pyfect.runtime import (  # noqa: E402
     run_async,
     run_async_exit,
@@ -228,6 +229,7 @@ __all__ = [
     "OrElseCallable",
     "Provide",
     "ProvideCallable",
+    "RepeatCallable",
     "Service",
     "Sleep",
     "Succeed",
@@ -270,6 +272,7 @@ __all__ = [
     "or_die_with",
     "or_else",
     "provide",
+    "repeat",
     "run_async",
     "run_async_exit",
     "run_sync",
